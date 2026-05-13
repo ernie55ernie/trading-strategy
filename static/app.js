@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const signalReasonsList = document.getElementById('signal-reasons-list');
     const chartLoading = document.getElementById('chart-loading');
 
-    let chart, areaSeries, rsiSeries, sma20Series, sma50Series;
+    let chart, areaSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
 
     function initChart() {
         const chartProperties = {
@@ -50,6 +50,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             color: '#10b981',
             lineWidth: 2,
             title: 'SMA 50',
+        });
+
+        bbUpperSeries = chart.addLineSeries({
+            color: 'rgba(167, 139, 250, 0.6)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            title: 'BB Upper',
+        });
+
+        bbLowerSeries = chart.addLineSeries({
+            color: 'rgba(167, 139, 250, 0.6)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            title: 'BB Lower',
         });
 
         // autoSize handles resizing automatically
@@ -106,9 +120,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.sma_50
         }));
 
+        const bbUpperData = data.history.filter(i => i.bb_upper !== null).map(item => ({
+            time: item.time,
+            value: item.bb_upper
+        }));
+
+        const bbLowerData = data.history.filter(i => i.bb_lower !== null).map(item => ({
+            time: item.time,
+            value: item.bb_lower
+        }));
+
         areaSeries.setData(lineData);
         sma20Series.setData(sma20Data);
         sma50Series.setData(sma50Data);
+        bbUpperSeries.setData(bbUpperData);
+        bbLowerSeries.setData(bbLowerData);
         
         // Fit content
         chart.timeScale().fitContent();
