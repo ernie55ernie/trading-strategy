@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tradingSignalEl = document.getElementById('trading-signal');
     const signalReasonsList = document.getElementById('signal-reasons-list');
     const chartLoading = document.getElementById('chart-loading');
+    const toggleSma = document.getElementById('toggle-sma');
+    const toggleBb = document.getElementById('toggle-bb');
 
     let chart, areaSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
 
@@ -139,6 +141,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Fit content
         chart.timeScale().fitContent();
     }
+
+    toggleSma.addEventListener('change', (e) => {
+        const visible = e.target.checked;
+        if (sma20Series) sma20Series.applyOptions({ visible });
+        if (sma50Series) sma50Series.applyOptions({ visible });
+    });
+
+    toggleBb.addEventListener('change', (e) => {
+        const visible = e.target.checked;
+        if (bbUpperSeries) bbUpperSeries.applyOptions({ visible });
+        if (bbLowerSeries) bbLowerSeries.applyOptions({ visible });
+    });
 
     initChart();
     fetchMarketData();

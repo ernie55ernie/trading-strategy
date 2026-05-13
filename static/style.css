@@ -201,6 +201,36 @@ body {
     font-weight: 600;
 }
 
+.controls-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.indicator-controls {
+    display: flex;
+    gap: 12px;
+    font-size: 0.875rem;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.toggle-label input[type="checkbox"] {
+    accent-color: var(--accent-gold);
+    cursor: pointer;
+}
+
+.toggle-label:hover {
+    color: var(--text-main);
+}
+
 .chart-container {
     flex: 1;
     min-height: 500px;
