@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-import yfinance as yf
 import pandas as pd
 import ta
 import math
@@ -33,102 +32,75 @@ def read_root():
 @app.get("/api/market-data")
 def get_market_data(period: str = "1y"):
     try:
-        # Download Gold Futures and USD/TWD exchange rate
-        tickers = "GC=F TWD=X"
+        url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
         
-        data = yf.download(tickers, period=period, progress=False)
+        # Scrape data from Taiwan Bank using a User-Agent
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url, headers=headers)
         
-        # In yfinance >= 0.2.x, download with multiple tickers returns MultiIndex columns
-        if data.empty:
-            logger.warning("yf.download returned empty data. Trying fallback mechanism...")
-            # Fallback: Download individually
-            gold_data = yf.download("GC=F", period=period, progress=False)
-            twd_data = yf.download("TWD=X", period=period, progress=False)
+        # Use pandas to read the HTML table
+        dfs = pd.read_html(res.text)
+        if not dfs:
+            return {"error": "No tables found on Taiwan Bank website."}
             
-            if gold_data.empty or twd_data.empty:
-                # Second Fallback: use Ticker.history()
-                gold_data = yf.Ticker("GC=F").history(period=period)
-                twd_data = yf.Ticker("TWD=X").history(period=period)
-                
-                if gold_data.empty or twd_data.empty:
-                    return {"error": "No data found. Yahoo Finance might be blocking this server's IP address."}
-            
-            # Reconstruct the expected MultiIndex DataFrame from individual downloads
-            # to match the logic below
-            data = pd.DataFrame()
-            if isinstance(gold_data.columns, pd.MultiIndex):
-                # It's already multi-index
-                data = gold_data.join(twd_data, how="outer")
-            else:
-                # We need to manually map to the expected structure
-                data = pd.concat({'GC=F': gold_data, 'TWD=X': twd_data}, axis=1).swaplevel(0, 1, axis=1)
-            
-        # Ensure we have both tickers
-        if "GC=F" not in data['Close'].columns or "TWD=X" not in data['Close'].columns:
-             return {"error": "Missing ticker data"}
-             
-        # Extract closing prices
-        df = pd.DataFrame()
-        df['gold_usd'] = data['Close']['GC=F']
-        df['open'] = data['Open']['GC=F']
-        df['high'] = data['High']['GC=F']
-        df['low'] = data['Low']['GC=F']
-        df['close'] = data['Close']['GC=F']
-        df['volume'] = data['Volume']['GC=F']
+        df = dfs[0]
         
-        df['usd_twd'] = data['Close']['TWD=X']
+        # Rename columns to standard English names
+        # Original: Index(['日期', '牌價幣別', '商品重量', '本行買入價格', '本行賣出價格'], dtype='object')
+        df.columns = ['date', 'currency', 'weight', 'buy_price', 'sell_price']
         
-        # Forward fill missing values (e.g. if one market is closed)
-        df.ffill(inplace=True)
-        # Drop rows with remaining NaNs (usually at the very beginning)
-        df.dropna(inplace=True)
+        # Convert date to datetime and sort ascending (oldest to newest for technical indicators)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values(by='date').reset_index(drop=True)
         
-        # Calculate Taiwan Bank Gold Passbook Estimate (TWD/Gram)
-        # 1 Troy Ounce = 31.1034768 grams
-        # Applying a 1.01 multiplier (~1% premium) for bank spread
-        TROY_OUNCE_GRAMS = 31.1034768
-        df['twd_per_gram'] = (df['gold_usd'] / TROY_OUNCE_GRAMS) * df['usd_twd'] * 1.01
+        # Use 'sell_price' (本行賣出價格) as the 'close' price for analysis
+        df['close'] = df['sell_price']
         
         # Calculate Indicators using the 'ta' library
         # RSI
-        df['rsi'] = ta.momentum.RSIIndicator(close=df['gold_usd'], window=14).rsi()
+        df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
         
         # MACD
-        macd = ta.trend.MACD(close=df['gold_usd'])
+        macd = ta.trend.MACD(close=df['close'])
         df['macd'] = macd.macd()
         df['macd_signal'] = macd.macd_signal()
         df['macd_diff'] = macd.macd_diff()
         
         # SMA
-        df['sma_20'] = ta.trend.SMAIndicator(close=df['gold_usd'], window=20).sma_indicator()
-        df['sma_50'] = ta.trend.SMAIndicator(close=df['gold_usd'], window=50).sma_indicator()
+        df['sma_20'] = ta.trend.SMAIndicator(close=df['close'], window=20).sma_indicator()
+        df['sma_50'] = ta.trend.SMAIndicator(close=df['close'], window=50).sma_indicator()
         
         # Drop NaN generated by indicators (first few rows)
         df.dropna(inplace=True)
         
         # Generate Trading Signal (Current Day)
+        if df.empty:
+             return {"error": "Not enough data points after indicator calculation."}
+             
         latest = df.iloc[-1]
         signal = "HOLD"
         signal_reasons = []
         
         if latest['rsi'] > 70:
-            signal_reasons.append("RSI is Overbought (>70)")
+            signal_reasons.append("RSI 處於超買區 (>70)")
         elif latest['rsi'] < 30:
-            signal_reasons.append("RSI is Oversold (<30)")
+            signal_reasons.append("RSI 處於超賣區 (<30)")
             
         if latest['macd_diff'] > 0 and df.iloc[-2]['macd_diff'] <= 0:
-            signal_reasons.append("MACD Bullish Cross")
+            signal_reasons.append("MACD 黃金交叉 (Bullish Cross)")
         elif latest['macd_diff'] < 0 and df.iloc[-2]['macd_diff'] >= 0:
-            signal_reasons.append("MACD Bearish Cross")
+            signal_reasons.append("MACD 死亡交叉 (Bearish Cross)")
             
         if latest['sma_20'] > latest['sma_50'] and df.iloc[-2]['sma_20'] <= df.iloc[-2]['sma_50']:
-             signal_reasons.append("Golden Cross (SMA20 > SMA50)")
+             signal_reasons.append("均線黃金交叉 (SMA20 > SMA50)")
         elif latest['sma_20'] < latest['sma_50'] and df.iloc[-2]['sma_20'] >= df.iloc[-2]['sma_50']:
-             signal_reasons.append("Death Cross (SMA20 < SMA50)")
+             signal_reasons.append("均線死亡交叉 (SMA20 < SMA50)")
              
         # Basic logic for signal
-        bullish_points = sum([1 for r in signal_reasons if "Oversold" in r or "Bullish" in r or "Golden" in r])
-        bearish_points = sum([1 for r in signal_reasons if "Overbought" in r or "Bearish" in r or "Death" in r])
+        bullish_points = sum([1 for r in signal_reasons if "超賣" in r or "黃金" in r])
+        bearish_points = sum([1 for r in signal_reasons if "超買" in r or "死亡" in r])
         
         if bullish_points > bearish_points:
             signal = "BUY"
@@ -136,23 +108,16 @@ def get_market_data(period: str = "1y"):
             signal = "SELL"
             
         if not signal_reasons:
-            signal_reasons.append("No strong indicator signals currently.")
+            signal_reasons.append("目前無強烈技術指標訊號。")
 
         # Prepare JSON response
-        # Ensure timestamp is string for JSON
-        df.index = df.index.astype(str)
-        
-        # Create records
         records = []
         for index, row in df.iterrows():
             records.append({
-                "time": index.split(" ")[0], # YYYY-MM-DD
-                "open": float(row['open']),
-                "high": float(row['high']),
-                "low": float(row['low']),
-                "close": float(row['close']),
-                "value": float(row['close']), # for line series
-                "twd_per_gram": float(row['twd_per_gram']),
+                "time": row['date'].strftime('%Y-%m-%d'),
+                "buy_price": float(row['buy_price']),
+                "sell_price": float(row['sell_price']),
+                "value": float(row['sell_price']), # for Area/Line series
                 "rsi": float(row['rsi']) if not math.isnan(row['rsi']) else None,
                 "macd": float(row['macd']) if not math.isnan(row['macd']) else None,
                 "macd_signal": float(row['macd_signal']) if not math.isnan(row['macd_signal']) else None,
@@ -163,9 +128,8 @@ def get_market_data(period: str = "1y"):
             
         return {
             "status": "success",
-            "current_price_usd": float(latest['gold_usd']),
-            "current_price_twd": float(latest['twd_per_gram']),
-            "exchange_rate": float(latest['usd_twd']),
+            "current_buy_price": float(latest['buy_price']),
+            "current_sell_price": float(latest['sell_price']),
             "signal": signal,
             "reasons": signal_reasons,
             "history": records

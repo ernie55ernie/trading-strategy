@@ -28,16 +28,15 @@
             <!-- Price Summary Panel -->
             <section class="panel price-panel">
                 <div class="price-card primary-price">
-                    <h3>XAU/USD (黃金/美元)</h3>
-                    <div class="price-value" id="gold-usd-price">載入中...</div>
-                    <div class="price-label">國際現貨參考價</div>
+                    <h3>台銀黃金存摺 (銀行賣出價)</h3>
+                    <div class="price-value" id="gold-sell-price">載入中...</div>
+                    <div class="price-label">新台幣 / 公克 (您的申購價)</div>
                 </div>
                 
                 <div class="price-card secondary-price">
-                    <h3>台銀黃金存摺 (估算)</h3>
-                    <div class="price-value" id="gold-twd-price">載入中...</div>
-                    <div class="price-label">新台幣 / 公克</div>
-                    <div class="exchange-rate">匯率 USD/TWD: <span id="usd-twd-rate">--</span></div>
+                    <h3>台銀黃金存摺 (銀行買入價)</h3>
+                    <div class="price-value" id="gold-buy-price">載入中...</div>
+                    <div class="price-label">新台幣 / 公克 (您的回售價)</div>
                 </div>
             </section>
 
@@ -83,7 +82,7 @@
                         </div>
                         <div class="alert-item warning">
                             <span class="alert-time">注意</span>
-                            <p>台銀黃金存摺牌價含銀行買賣價差與溢價，此為演算法估算值，實際請以銀行公告為準。</p>
+                            <p>本系統已改為直接抓取「台灣銀行黃金存摺」官方歷史牌價，確保與您實際交易的價格完全一致。</p>
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const goldUsdPriceEl = document.getElementById('gold-usd-price');
-    const goldTwdPriceEl = document.getElementById('gold-twd-price');
-    const usdTwdRateEl = document.getElementById('usd-twd-rate');
+    const goldSellPriceEl = document.getElementById('gold-sell-price');
+    const goldBuyPriceEl = document.getElementById('gold-buy-price');
     const tradingSignalBox = document.getElementById('trading-signal-box');
     const tradingSignalEl = document.getElementById('trading-signal');
     const signalReasonsList = document.getElementById('signal-reasons-list');
     const chartLoading = document.getElementById('chart-loading');
 
-    let chart, candlestickSeries, rsiSeries, sma20Series, sma50Series;
+    let chart, areaSeries, rsiSeries, sma20Series, sma50Series;
 
     function initChart() {
         const chartProperties = {
@@ -33,13 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         chart = LightweightCharts.createChart(document.getElementById('tvchart'), chartProperties);
 
-        candlestickSeries = chart.addCandlestickSeries({
-            upColor: '#10b981',
-            downColor: '#ef4444',
-            borderDownColor: '#ef4444',
-            borderUpColor: '#10b981',
-            wickDownColor: '#ef4444',
-            wickUpColor: '#10b981',
+        areaSeries = chart.addAreaSeries({
+            lineColor: '#fbbf24',
+            topColor: 'rgba(251, 191, 36, 0.4)',
+            bottomColor: 'rgba(251, 191, 36, 0.0)',
+            lineWidth: 2,
+            title: '台銀賣出價',
         });
 
         sma20Series = chart.addLineSeries({
@@ -49,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         sma50Series = chart.addLineSeries({
-            color: '#fbbf24',
+            color: '#10b981',
             lineWidth: 2,
             title: 'SMA 50',
         });
@@ -67,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chartLoading.style.display = 'none';
             } else {
                 console.error("Failed to fetch data:", data.error);
-                goldUsdPriceEl.textContent = 'Error';
+                goldSellPriceEl.textContent = 'Error';
                 chartLoading.innerHTML = `<p>Error loading data: ${data.error}</p>`;
             }
         } catch (error) {
@@ -77,9 +75,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateDashboard(data) {
         // Prices
-        goldUsdPriceEl.textContent = `$${data.current_price_usd.toFixed(2)}`;
-        goldTwdPriceEl.textContent = `NT$${data.current_price_twd.toFixed(2)}`;
-        usdTwdRateEl.textContent = data.exchange_rate.toFixed(4);
+        goldSellPriceEl.textContent = `NT$${data.current_sell_price.toFixed(0)}`;
+        goldBuyPriceEl.textContent = `NT$${data.current_buy_price.toFixed(0)}`;
 
         // Trading Signal
         tradingSignalEl.textContent = data.signal;
@@ -94,12 +91,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Chart Data
-        const candleData = data.history.map(item => ({
+        const lineData = data.history.map(item => ({
             time: item.time,
-            open: item.open,
-            high: item.high,
-            low: item.low,
-            close: item.close
+            value: item.value
         }));
 
         const sma20Data = data.history.filter(i => i.sma_20 !== null).map(item => ({
@@ -112,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.sma_50
         }));
 
-        candlestickSeries.setData(candleData);
+        areaSeries.setData(lineData);
         sma20Series.setData(sma20Data);
         sma50Series.setData(sma50Data);
         
