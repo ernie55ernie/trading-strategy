@@ -8,6 +8,7 @@ import pandas as pd
 import ta
 import math
 import numpy as np
+import requests
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,12 +35,39 @@ def get_market_data(period: str = "1y"):
     try:
         # Download Gold Futures and USD/TWD exchange rate
         tickers = "GC=F TWD=X"
-        data = yf.download(tickers, period=period, progress=False)
+        
+        # Setup session with custom User-Agent to prevent 403 Forbidden on Render
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        })
+        
+        data = yf.download(tickers, period=period, progress=False, session=session)
         
         # In yfinance >= 0.2.x, download with multiple tickers returns MultiIndex columns
-        # We need to flatten or access them safely
         if data.empty:
-            return {"error": "No data found"}
+            logger.warning("yf.download returned empty data. Trying fallback mechanism...")
+            # Fallback: Download individually
+            gold_data = yf.download("GC=F", period=period, progress=False, session=session)
+            twd_data = yf.download("TWD=X", period=period, progress=False, session=session)
+            
+            if gold_data.empty or twd_data.empty:
+                # Second Fallback: use Ticker.history()
+                gold_data = yf.Ticker("GC=F", session=session).history(period=period)
+                twd_data = yf.Ticker("TWD=X", session=session).history(period=period)
+                
+                if gold_data.empty or twd_data.empty:
+                    return {"error": "No data found. Yahoo Finance might be blocking this server's IP address."}
+            
+            # Reconstruct the expected MultiIndex DataFrame from individual downloads
+            # to match the logic below
+            data = pd.DataFrame()
+            if isinstance(gold_data.columns, pd.MultiIndex):
+                # It's already multi-index
+                data = gold_data.join(twd_data, how="outer")
+            else:
+                # We need to manually map to the expected structure
+                data = pd.concat({'GC=F': gold_data, 'TWD=X': twd_data}, axis=1).swaplevel(0, 1, axis=1)
             
         # Ensure we have both tickers
         if "GC=F" not in data['Close'].columns or "TWD=X" not in data['Close'].columns:
