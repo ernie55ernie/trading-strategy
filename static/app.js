@@ -64,18 +64,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             bottomColor: 'rgba(251, 191, 36, 0.0)',
             lineWidth: 2,
             title: '台銀賣出價',
+            lastValueVisible: false,
+            priceLineVisible: false,
         });
 
         sma20Series = chart.addLineSeries({
             color: '#3b82f6',
             lineWidth: 2,
             title: 'SMA 20',
+            lastValueVisible: false,
+            priceLineVisible: false,
         });
 
         sma50Series = chart.addLineSeries({
             color: '#10b981',
             lineWidth: 2,
             title: 'SMA 50',
+            lastValueVisible: false,
+            priceLineVisible: false,
         });
 
         bbUpperSeries = chart.addLineSeries({
@@ -83,6 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             lineWidth: 1,
             lineStyle: LightweightCharts.LineStyle.Dashed,
             title: 'BB Upper',
+            lastValueVisible: false,
+            priceLineVisible: false,
         });
 
         bbLowerSeries = chart.addLineSeries({
@@ -90,6 +98,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             lineWidth: 1,
             lineStyle: LightweightCharts.LineStyle.Dashed,
             title: 'BB Lower',
+            lastValueVisible: false,
+            priceLineVisible: false,
         });
 
         chart.subscribeCrosshairMove(updateLegend);
