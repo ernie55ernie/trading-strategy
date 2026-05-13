@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAU/USD 交易策略與台銀黃金存摺基準</title>
+    <meta name="description" content="自動彙集 XAU/USD 行情與分析，計算台銀黃金存摺基準報價，提供交易策略建議與提醒。">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lightweight Charts v4.1.1 -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">📈</span>
+                <h1>黃金交易策略終端</h1>
+            </div>
+            <div class="header-status">
+                <span class="status-dot"></span>
+                <span>系統連線中</span>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Price Summary Panel -->
+            <section class="panel price-panel">
+                <div class="price-card primary-price">
+                    <h3>XAU/USD (黃金/美元)</h3>
+                    <div class="price-value" id="gold-usd-price">載入中...</div>
+                    <div class="price-label">國際現貨參考價</div>
+                </div>
+                
+                <div class="price-card secondary-price">
+                    <h3>台銀黃金存摺 (估算)</h3>
+                    <div class="price-value" id="gold-twd-price">載入中...</div>
+                    <div class="price-label">新台幣 / 公克</div>
+                    <div class="exchange-rate">匯率 USD/TWD: <span id="usd-twd-rate">--</span></div>
+                </div>
+            </section>
+
+            <!-- Chart Panel -->
+            <section class="panel chart-panel">
+                <div class="panel-header">
+                    <h2>市場行情與技術分析</h2>
+                    <div class="chart-controls">
+                        <button class="control-btn active" data-period="1y">1 年</button>
+                    </div>
+                </div>
+                <div id="tvchart" class="chart-container">
+                    <div class="loading-overlay" id="chart-loading">
+                        <div class="spinner"></div>
+                        <p>分析數據載入中...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Strategy & Alerts Panel -->
+            <section class="panel strategy-panel">
+                <div class="panel-header">
+                    <h2>策略建議與提醒</h2>
+                </div>
+                <div class="strategy-content">
+                    <div class="signal-box" id="trading-signal-box">
+                        <div class="signal-label">當前建議</div>
+                        <div class="signal-value" id="trading-signal">ANALYZING</div>
+                    </div>
+                    
+                    <div class="reasons-box">
+                        <h3>觸發條件</h3>
+                        <ul id="signal-reasons-list" class="reasons-list">
+                            <li>分析中...</li>
+                        </ul>
+                    </div>
+
+                    <div class="alerts-box">
+                        <h3>系統提醒</h3>
+                        <div class="alert-item info">
+                            <span class="alert-time">剛剛</span>
+                            <p>系統已更新最新國際市場報價與匯率。</p>
+                        </div>
+                        <div class="alert-item warning">
+                            <span class="alert-time">注意</span>
+                            <p>台銀黃金存摺牌價含銀行買賣價差與溢價，此為演算法估算值，實際請以銀行公告為準。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/error_logger.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
