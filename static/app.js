@@ -7,8 +7,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chartLoading = document.getElementById('chart-loading');
     const toggleSma = document.getElementById('toggle-sma');
     const toggleBb = document.getElementById('toggle-bb');
+    const chartLegend = document.getElementById('chart-legend');
 
     let chart, areaSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
+    let chartData = null;
+
+    function updateLegend(param) {
+        if (!chartData || chartData.history.length === 0) return;
+
+        let currentItem;
+        if (!param || param.time === undefined) {
+            currentItem = chartData.history[chartData.history.length - 1];
+        } else {
+            currentItem = chartData.history.find(item => item.time === param.time);
+        }
+
+        if (!currentItem) return;
+
+        let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
+        html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>台銀賣出價: ${currentItem.value.toFixed(0)}</span></div>`;
+        if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
+        if (currentItem.sma_50 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
+        if (currentItem.bb_upper !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
+        if (currentItem.bb_lower !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
+
+        chartLegend.innerHTML = html;
+    }
 
     function initChart() {
         const chartProperties = {
@@ -68,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'BB Lower',
         });
 
+        chart.subscribeCrosshairMove(updateLegend);
         // autoSize handles resizing automatically
     }
 
@@ -140,6 +165,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Fit content
         chart.timeScale().fitContent();
+        
+        chartData = data;
+        updateLegend(null);
     }
 
     toggleSma.addEventListener('change', (e) => {
