@@ -36,25 +36,19 @@ def get_market_data(period: str = "1y"):
         # Download Gold Futures and USD/TWD exchange rate
         tickers = "GC=F TWD=X"
         
-        # Setup session with custom User-Agent to prevent 403 Forbidden on Render
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
-        
-        data = yf.download(tickers, period=period, progress=False, session=session)
+        data = yf.download(tickers, period=period, progress=False)
         
         # In yfinance >= 0.2.x, download with multiple tickers returns MultiIndex columns
         if data.empty:
             logger.warning("yf.download returned empty data. Trying fallback mechanism...")
             # Fallback: Download individually
-            gold_data = yf.download("GC=F", period=period, progress=False, session=session)
-            twd_data = yf.download("TWD=X", period=period, progress=False, session=session)
+            gold_data = yf.download("GC=F", period=period, progress=False)
+            twd_data = yf.download("TWD=X", period=period, progress=False)
             
             if gold_data.empty or twd_data.empty:
                 # Second Fallback: use Ticker.history()
-                gold_data = yf.Ticker("GC=F", session=session).history(period=period)
-                twd_data = yf.Ticker("TWD=X", session=session).history(period=period)
+                gold_data = yf.Ticker("GC=F").history(period=period)
+                twd_data = yf.Ticker("TWD=X").history(period=period)
                 
                 if gold_data.empty or twd_data.empty:
                     return {"error": "No data found. Yahoo Finance might be blocking this server's IP address."}
