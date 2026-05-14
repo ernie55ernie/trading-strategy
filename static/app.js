@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currentItem) return;
 
         let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
-        if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>國際期貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
+        if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>倫敦現貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
         if (currentItem.sell_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
         if (currentItem.buy_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
         if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             topColor: 'rgba(251, 191, 36, 0.4)',
             bottomColor: 'rgba(251, 191, 36, 0.0)',
             lineWidth: 2,
-            title: '國際期貨(TWD)',
+            title: '倫敦現貨(TWD)',
             lastValueVisible: false,
             priceLineVisible: false,
         });
