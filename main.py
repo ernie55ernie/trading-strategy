@@ -8,6 +8,8 @@ import ta
 import math
 import numpy as np
 import requests
+import yfinance as yf
+from datetime import timedelta
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,6 +56,46 @@ def get_market_data(period: str = "1y"):
         # Convert date to datetime and sort ascending (oldest to newest for technical indicators)
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values(by='date').reset_index(drop=True)
+        
+        # --- NEW: yfinance backfill logic ---
+        years_map = {"1y": 1, "3y": 3, "5y": 5, "10y": 10}
+        target_years = years_map.get(period, 1)
+        
+        if target_years > 1:
+            try:
+                earliest_tb_date = df['date'].min()
+                start_date = earliest_tb_date - timedelta(days=365 * target_years)
+                end_date = earliest_tb_date
+                
+                gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+                twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+                
+                if not gc.empty and not twd.empty:
+                    yf_df = pd.DataFrame({
+                        'gold': gc['Close']['GC=F'],
+                        'usd_twd': twd['Close']['TWD=X']
+                    }).dropna()
+                    
+                    if not yf_df.empty:
+                        yf_df['proxy_twd_gram'] = (yf_df['gold'] / 31.1034768) * yf_df['usd_twd']
+                        yf_df['sell_price'] = (yf_df['proxy_twd_gram'] * 1.006).round(0)
+                        yf_df['buy_price'] = (yf_df['proxy_twd_gram'] * 0.994).round(0)
+                        
+                        yf_df = yf_df.reset_index()
+                        yf_df.rename(columns={'Date': 'date'}, inplace=True)
+                        
+                        yf_df['currency'] = 'TWD'
+                        yf_df['weight'] = '1公克'
+                        yf_df = yf_df[['date', 'currency', 'weight', 'buy_price', 'sell_price']]
+                        
+                        yf_df['date'] = pd.to_datetime(yf_df['date']).dt.tz_localize(None)
+                        df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+                        
+                        df = pd.concat([yf_df, df], ignore_index=True)
+                        df = df.sort_values(by='date').reset_index(drop=True)
+            except Exception as ex:
+                logger.warning(f"Failed to fetch yfinance backfill data: {ex}")
+        # --- END NEW ---
         
         # Use 'sell_price' (本行賣出價格) as the 'close' price for analysis
         df['close'] = df['sell_price']

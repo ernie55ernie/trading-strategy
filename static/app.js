@@ -123,9 +123,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // autoSize handles resizing automatically
     }
 
-    async function fetchMarketData() {
+    async function fetchMarketData(period = '1y') {
         try {
-            const response = await fetch('/api/market-data?period=1y');
+            chartLoading.style.display = 'flex';
+            const response = await fetch(`/api/market-data?period=${period}`);
             const data = await response.json();
             
             if (data.status === 'success') {
@@ -233,6 +234,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const visible = e.target.checked;
         if (bbUpperSeries) bbUpperSeries.applyOptions({ visible });
         if (bbLowerSeries) bbLowerSeries.applyOptions({ visible });
+    });
+
+    const periodButtons = document.querySelectorAll('.control-btn');
+    periodButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            periodButtons.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            const period = e.target.getAttribute('data-period');
+            fetchMarketData(period);
+        });
     });
 
     initChart();
