@@ -1,37 +1,9 @@
-import logging
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
-import ta
-import math
-import numpy as np
-import requests
-import yfinance as yf
-from datetime import timedelta
+import re
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+with open('main.py', 'r') as f:
+    content = f.read()
 
-app = FastAPI(title="XAU/USD Trading Strategy API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Mount the static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/")
-def read_root():
-    return FileResponse("static/index.html")
-
-@app.get("/api/market-data")
+new_func = """@app.get("/api/market-data")
 def get_market_data(period: str = "1y"):
     try:
         url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
@@ -56,16 +28,14 @@ def get_market_data(period: str = "1y"):
         end_date = tb_df['date'].max() + timedelta(days=1)
         start_date = end_date - timedelta(days=365 * target_years)
         
-        # PAXG-USD: Paxos Gold token - 1 PAXG = 1 troy oz of LBMA-certified gold in London Brink's vaults
-        # Tracks London Bullion Market (LBMA) spot price accurately; 365-day coverage
-        paxg = yf.download('PAXG-USD', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+        gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
         twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
         
-        if paxg.empty or twd.empty:
+        if gc.empty or twd.empty:
             return {"error": "Failed to fetch global market data."}
             
         df = pd.DataFrame({
-            'global_price': paxg['Close']['PAXG-USD'],
+            'global_price': gc['Close']['GC=F'],
             'usd_twd': twd['Close']['TWD=X']
         }).dropna()
         
@@ -201,8 +171,8 @@ def get_market_data(period: str = "1y"):
         }
     except Exception as e:
         logger.error(f"Error fetching data: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}"""
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+new_content = re.sub(r'@app\.get\("/api/market-data"\)\ndef get_market_data.*?return \{"error": str\(e\)\}', new_func, content, flags=re.DOTALL)
+with open('main.py', 'w') as f:
+    f.write(new_content)
