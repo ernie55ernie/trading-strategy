@@ -35,95 +35,64 @@ def read_root():
 def get_market_data(period: str = "1y"):
     try:
         url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
-        
-        # Scrape data from Taiwan Bank using a User-Agent
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         res = requests.get(url, headers=headers)
         
-        # Use pandas to read the HTML table
         dfs = pd.read_html(res.text)
         if not dfs:
             return {"error": "No tables found on Taiwan Bank website."}
             
-        df = dfs[0]
+        tb_df = dfs[0]
+        tb_df.columns = ['date', 'currency', 'weight', 'buy_price', 'sell_price']
+        tb_df['date'] = pd.to_datetime(tb_df['date']).dt.tz_localize(None)
+        tb_df = tb_df.sort_values(by='date').reset_index(drop=True)
+        tb_df = tb_df[['date', 'buy_price', 'sell_price']]
         
-        # Rename columns to standard English names
-        # Original: Index(['日期', '牌價幣別', '商品重量', '本行買入價格', '本行賣出價格'], dtype='object')
-        df.columns = ['date', 'currency', 'weight', 'buy_price', 'sell_price']
-        
-        # Convert date to datetime and sort ascending (oldest to newest for technical indicators)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values(by='date').reset_index(drop=True)
-        
-        # --- NEW: yfinance backfill logic ---
         years_map = {"1y": 1, "3y": 3, "5y": 5, "10y": 10}
         target_years = years_map.get(period, 1)
         
-        if target_years > 1:
-            try:
-                earliest_tb_date = df['date'].min()
-                start_date = earliest_tb_date - timedelta(days=365 * target_years)
-                end_date = earliest_tb_date
-                
-                gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-                twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-                
-                if not gc.empty and not twd.empty:
-                    yf_df = pd.DataFrame({
-                        'gold': gc['Close']['GC=F'],
-                        'usd_twd': twd['Close']['TWD=X']
-                    }).dropna()
-                    
-                    if not yf_df.empty:
-                        yf_df['proxy_twd_gram'] = (yf_df['gold'] / 31.1034768) * yf_df['usd_twd']
-                        yf_df['sell_price'] = (yf_df['proxy_twd_gram'] * 1.006).round(0)
-                        yf_df['buy_price'] = (yf_df['proxy_twd_gram'] * 0.994).round(0)
-                        
-                        yf_df = yf_df.reset_index()
-                        yf_df.rename(columns={'Date': 'date'}, inplace=True)
-                        
-                        yf_df['currency'] = 'TWD'
-                        yf_df['weight'] = '1公克'
-                        yf_df = yf_df[['date', 'currency', 'weight', 'buy_price', 'sell_price']]
-                        
-                        yf_df['date'] = pd.to_datetime(yf_df['date']).dt.tz_localize(None)
-                        df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-                        
-                        df = pd.concat([yf_df, df], ignore_index=True)
-                        df = df.sort_values(by='date').reset_index(drop=True)
-            except Exception as ex:
-                logger.warning(f"Failed to fetch yfinance backfill data: {ex}")
-        # --- END NEW ---
+        end_date = tb_df['date'].max() + timedelta(days=1)
+        start_date = end_date - timedelta(days=365 * target_years)
         
-        # Use 'sell_price' (本行賣出價格) as the 'close' price for analysis
-        df['close'] = df['sell_price']
+        gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+        twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
         
-        # Calculate Indicators using the 'ta' library
-        # RSI
+        if gc.empty or twd.empty:
+            return {"error": "Failed to fetch global market data."}
+            
+        df = pd.DataFrame({
+            'global_price': gc['Close']['GC=F'],
+            'usd_twd': twd['Close']['TWD=X']
+        }).dropna()
+        
+        df['global_twd_price'] = (df['global_price'] / 31.1034768) * df['usd_twd']
+        df = df.reset_index()
+        df.rename(columns={'Date': 'date'}, inplace=True)
+        df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+        
+        df = pd.merge(df, tb_df, on='date', how='left')
+        
+        # Core change: use international price as the 'close' price for TA indicators
+        df['close'] = df['global_twd_price']
+        
         df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
-        
-        # MACD
         macd = ta.trend.MACD(close=df['close'])
         df['macd'] = macd.macd()
         df['macd_signal'] = macd.macd_signal()
         df['macd_diff'] = macd.macd_diff()
-        
-        # SMA
         df['sma_20'] = ta.trend.SMAIndicator(close=df['close'], window=20).sma_indicator()
         df['sma_50'] = ta.trend.SMAIndicator(close=df['close'], window=50).sma_indicator()
         
-        # Bollinger Bands
         indicator_bb = ta.volatility.BollingerBands(close=df['close'], window=20, window_dev=2)
         df['bb_bbh'] = indicator_bb.bollinger_hband()
         df['bb_bbl'] = indicator_bb.bollinger_lband()
         df['bb_pband'] = indicator_bb.bollinger_pband()
         
-        # Drop NaN generated by indicators (first few rows)
-        df.dropna(inplace=True)
+        df.dropna(subset=['sma_50', 'bb_bbh'], inplace=True)
+        df = df.reset_index(drop=True)
         
-        # Generate Trading Signal (Current Day)
         if df.empty:
              return {"error": "Not enough data points after indicator calculation."}
              
@@ -156,7 +125,6 @@ def get_market_data(period: str = "1y"):
         elif latest['bb_pband'] <= 0.20:
              signal_reasons.append("Bollinger Bands %B ≤ 0.20 (進場參考)")
              
-        # Basic logic for signal
         bullish_points = sum([1 for r in signal_reasons if "超賣" in r or "黃金" in r or "進場" in r])
         bearish_points = sum([1 for r in signal_reasons if "超買" in r or "死亡" in r or "出場" in r])
         
@@ -168,12 +136,10 @@ def get_market_data(period: str = "1y"):
         if not signal_reasons:
             signal_reasons.append("目前無強烈技術指標訊號。")
 
-        # Prepare JSON response
         records = []
         for i in range(len(df)):
             row = df.iloc[i]
             
-            # Calculate historical signal for markers
             hist_signal = "HOLD"
             bullish = 0
             bearish = 0
@@ -204,9 +170,10 @@ def get_market_data(period: str = "1y"):
 
             records.append({
                 "time": row['date'].strftime('%Y-%m-%d'),
-                "buy_price": float(row['buy_price']),
-                "sell_price": float(row['sell_price']),
-                "value": float(row['sell_price']), # for Area/Line series
+                "global_price": float(row['global_twd_price']),
+                "buy_price": float(row['buy_price']) if pd.notna(row['buy_price']) else None,
+                "sell_price": float(row['sell_price']) if pd.notna(row['sell_price']) else None,
+                "value": float(row['global_twd_price']), # for primary global series mapping
                 "rsi": float(row['rsi']) if not math.isnan(row['rsi']) else None,
                 "macd": float(row['macd']) if not math.isnan(row['macd']) else None,
                 "macd_signal": float(row['macd_signal']) if not math.isnan(row['macd_signal']) else None,
@@ -219,15 +186,17 @@ def get_market_data(period: str = "1y"):
                 "signal": hist_signal
             })
             
+        latest_tb = tb_df.dropna().iloc[-1] if not tb_df.dropna().empty else {"buy_price": 0, "sell_price": 0}
+            
         return {
             "status": "success",
-            "current_buy_price": float(latest['buy_price']),
-            "current_sell_price": float(latest['sell_price']),
+            "current_buy_price": float(latest_tb['buy_price']),
+            "current_sell_price": float(latest_tb['sell_price']),
+            "current_global_price": float(latest['global_twd_price']),
             "signal": signal,
             "reasons": signal_reasons,
             "history": records
         }
-        
     except Exception as e:
         logger.error(f"Error fetching data: {e}")
         return {"error": str(e)}

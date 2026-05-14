@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const goldGlobalPriceEl = document.getElementById('gold-global-price');
     const goldSellPriceEl = document.getElementById('gold-sell-price');
     const goldBuyPriceEl = document.getElementById('gold-buy-price');
     const tradingSignalBox = document.getElementById('trading-signal-box');
@@ -8,9 +9,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleSma = document.getElementById('toggle-sma');
     const toggleBb = document.getElementById('toggle-bb');
     const chartLegend = document.getElementById('chart-legend');
+    const toggleTbSell = document.getElementById('toggle-tb-sell');
     const toggleBuyPrice = document.getElementById('toggle-buy-price');
 
-    let chart, areaSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
+    let chart, globalSeries, tbSellSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
     let chartData = null;
 
     function updateLegend(param) {
@@ -26,8 +28,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currentItem) return;
 
         let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
-        html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>台銀賣出價: ${currentItem.value.toFixed(0)}</span></div>`;
-        if (currentItem.buy_price !== undefined) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
+        if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>國際期貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
+        if (currentItem.sell_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
+        if (currentItem.buy_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
         if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
         if (currentItem.sma_50 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
         if (currentItem.bb_upper !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
@@ -65,10 +68,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         chart = LightweightCharts.createChart(document.getElementById('tvchart'), chartProperties);
 
-        areaSeries = chart.addAreaSeries({
+        globalSeries = chart.addAreaSeries({
             lineColor: '#fbbf24',
             topColor: 'rgba(251, 191, 36, 0.4)',
             bottomColor: 'rgba(251, 191, 36, 0.0)',
+            lineWidth: 2,
+            title: '國際期貨(TWD)',
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        tbSellSeries = chart.addLineSeries({
+            color: '#f87171',
             lineWidth: 2,
             title: '台銀賣出價',
             lastValueVisible: false,
@@ -144,8 +155,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateDashboard(data) {
         // Prices
-        goldSellPriceEl.textContent = `NT$${data.current_sell_price.toFixed(0)}`;
-        goldBuyPriceEl.textContent = `NT$${data.current_buy_price.toFixed(0)}`;
+        if (goldGlobalPriceEl) goldGlobalPriceEl.textContent = `NT$${data.current_global_price.toFixed(0)}`;
+        goldSellPriceEl.textContent = data.current_sell_price ? `NT$${data.current_sell_price.toFixed(0)}` : '無';
+        goldBuyPriceEl.textContent = data.current_buy_price ? `NT$${data.current_buy_price.toFixed(0)}` : '無';
 
         // Trading Signal
         tradingSignalEl.textContent = data.signal;
@@ -159,13 +171,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             signalReasonsList.appendChild(li);
         });
 
+        chartData = data;
+
         // Chart Data
-        const lineData = data.history.map(item => ({
+        const globalData = data.history.filter(i => i.global_price !== null).map(item => ({
             time: item.time,
-            value: item.value
+            value: item.global_price
         }));
 
-        const buyPriceData = data.history.map(item => ({
+        const sellPriceData = data.history.filter(i => i.sell_price !== null).map(item => ({
+            time: item.time,
+            value: item.sell_price
+        }));
+
+        const buyPriceData = data.history.filter(i => i.buy_price !== null).map(item => ({
             time: item.time,
             value: item.buy_price
         }));
@@ -190,7 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.bb_lower
         }));
 
-        areaSeries.setData(lineData);
+        globalSeries.setData(globalData);
+        tbSellSeries.setData(sellPriceData);
         buyPriceSeries.setData(buyPriceData);
         sma20Series.setData(sma20Data);
         sma50Series.setData(sma50Data);
@@ -208,13 +228,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             lastSignal = item.signal;
         });
-        areaSeries.setMarkers(markers);
+        globalSeries.setMarkers(markers);
         
         // Fit content
         chart.timeScale().fitContent();
         
         chartData = data;
         updateLegend(null);
+    }
+
+    if (toggleTbSell) {
+        toggleTbSell.addEventListener('change', (e) => {
+            const visible = e.target.checked;
+            if (tbSellSeries) tbSellSeries.applyOptions({ visible });
+        });
     }
 
     if (toggleBuyPrice) {
