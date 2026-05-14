@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentItem.sma_50 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
         if (currentItem.bb_upper !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
         if (currentItem.bb_lower !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
+        if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
 
         chartLegend.innerHTML = html;
     }
