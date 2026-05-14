@@ -51,8 +51,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             crosshair: {
                 mode: LightweightCharts.CrosshairMode.Normal,
             },
-            rightPriceScale: {
+            leftPriceScale: {
+                visible: true,
                 borderColor: 'rgba(255, 255, 255, 0.1)',
+            },
+            rightPriceScale: {
+                visible: false,
             },
             timeScale: {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
