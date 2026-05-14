@@ -128,7 +128,38 @@ def get_market_data(period: str = "1y"):
 
         # Prepare JSON response
         records = []
-        for index, row in df.iterrows():
+        for i in range(len(df)):
+            row = df.iloc[i]
+            
+            # Calculate historical signal for markers
+            hist_signal = "HOLD"
+            bullish = 0
+            bearish = 0
+            
+            if pd.notna(row['rsi']):
+                if row['rsi'] > 70: bearish += 1
+                elif row['rsi'] < 30: bullish += 1
+                
+            if i > 0:
+                prev = df.iloc[i-1]
+                if pd.notna(row['macd_diff']) and pd.notna(prev['macd_diff']):
+                    if row['macd_diff'] > 0 and prev['macd_diff'] <= 0: bullish += 1
+                    elif row['macd_diff'] < 0 and prev['macd_diff'] >= 0: bearish += 1
+                if pd.notna(row['sma_20']) and pd.notna(row['sma_50']) and pd.notna(prev['sma_20']) and pd.notna(prev['sma_50']):
+                    if row['sma_20'] > row['sma_50'] and prev['sma_20'] <= prev['sma_50']: bullish += 1
+                    elif row['sma_20'] < row['sma_50'] and prev['sma_20'] >= prev['sma_50']: bearish += 1
+                    
+            if pd.notna(row['bb_bbh']):
+                if row['close'] > row['bb_bbh']: bearish += 1
+                elif row['close'] < row['bb_bbl']: bullish += 1
+                
+            if pd.notna(row['bb_pband']):
+                if row['bb_pband'] >= 0.80: bearish += 1
+                elif row['bb_pband'] <= 0.20: bullish += 1
+                
+            if bullish > bearish: hist_signal = "BUY"
+            elif bearish > bullish: hist_signal = "SELL"
+
             records.append({
                 "time": row['date'].strftime('%Y-%m-%d'),
                 "buy_price": float(row['buy_price']),
@@ -143,6 +174,7 @@ def get_market_data(period: str = "1y"):
                 "bb_upper": float(row['bb_bbh']) if not math.isnan(row['bb_bbh']) else None,
                 "bb_lower": float(row['bb_bbl']) if not math.isnan(row['bb_bbl']) else None,
                 "bb_pband": float(row['bb_pband']) if not math.isnan(row['bb_pband']) else None,
+                "signal": hist_signal
             })
             
         return {

@@ -196,6 +196,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         bbUpperSeries.setData(bbUpperData);
         bbLowerSeries.setData(bbLowerData);
         
+        // Add Markers for historical signals
+        const markers = [];
+        let lastSignal = "HOLD";
+        data.history.forEach(item => {
+            if (item.signal === "BUY" && lastSignal !== "BUY") {
+                markers.push({ time: item.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+            } else if (item.signal === "SELL" && lastSignal !== "SELL") {
+                markers.push({ time: item.time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+            }
+            lastSignal = item.signal;
+        });
+        areaSeries.setMarkers(markers);
+        
         // Fit content
         chart.timeScale().fitContent();
         
