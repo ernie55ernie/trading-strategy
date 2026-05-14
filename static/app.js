@@ -8,8 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleSma = document.getElementById('toggle-sma');
     const toggleBb = document.getElementById('toggle-bb');
     const chartLegend = document.getElementById('chart-legend');
+    const toggleBuyPrice = document.getElementById('toggle-buy-price');
 
-    let chart, areaSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
+    let chart, areaSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
     let chartData = null;
 
     function updateLegend(param) {
@@ -26,7 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
         html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>台銀賣出價: ${currentItem.value.toFixed(0)}</span></div>`;
-        if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
+        if (currentItem.buy_price !== undefined) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
+        if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
         if (currentItem.sma_50 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
         if (currentItem.bb_upper !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
         if (currentItem.bb_lower !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
@@ -69,12 +71,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             priceLineVisible: false,
         });
 
-        sma20Series = chart.addLineSeries({
+        buyPriceSeries = chart.addLineSeries({
             color: '#3b82f6',
+            lineWidth: 2,
+            title: '台銀買入價',
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        sma20Series = chart.addLineSeries({
+            color: '#a855f7',
             lineWidth: 2,
             title: 'SMA 20',
             lastValueVisible: false,
             priceLineVisible: false,
+            visible: false,
         });
 
         sma50Series = chart.addLineSeries({
@@ -83,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'SMA 50',
             lastValueVisible: false,
             priceLineVisible: false,
+            visible: false,
         });
 
         bbUpperSeries = chart.addLineSeries({
@@ -148,6 +160,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.value
         }));
 
+        const buyPriceData = data.history.map(item => ({
+            time: item.time,
+            value: item.buy_price
+        }));
+
         const sma20Data = data.history.filter(i => i.sma_20 !== null).map(item => ({
             time: item.time,
             value: item.sma_20
@@ -169,6 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }));
 
         areaSeries.setData(lineData);
+        buyPriceSeries.setData(buyPriceData);
         sma20Series.setData(sma20Data);
         sma50Series.setData(sma50Data);
         bbUpperSeries.setData(bbUpperData);
@@ -179,6 +197,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         chartData = data;
         updateLegend(null);
+    }
+
+    if (toggleBuyPrice) {
+        toggleBuyPrice.addEventListener('change', (e) => {
+            const visible = e.target.checked;
+            if (buyPriceSeries) buyPriceSeries.applyOptions({ visible });
+        });
     }
 
     toggleSma.addEventListener('change', (e) => {
