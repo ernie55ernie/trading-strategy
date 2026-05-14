@@ -25,24 +25,61 @@
         </header>
 
         <main class="dashboard-grid">
-            <!-- Price Summary Panel -->
-            <section class="panel price-panel">
-                    <div class="price-value" id="gold-global-price">載入中...</div>
-                    <div class="price-label">國際期貨(TWD) 換算參考</div>
-                </div>
-                
-                <div class="price-card primary-price">
-                    <h3>台銀賣出價</h3>
-                    <div class="price-value" id="gold-sell-price">載入中...</div>
-                    <div class="price-label">新台幣 / 公克</div>
-                </div>
-                
-                <div class="price-card secondary-price">
-                    <h3>台銀買入價</h3>
-                    <div class="price-value" id="gold-buy-price">載入中...</div>
-                    <div class="price-label">新台幣 / 公克</div>
-                </div>
-            </section>
+            <!-- Left Sidebar -->
+            <aside class="sidebar-panel">
+                <!-- Price Summary Panel -->
+                <section class="panel price-panel">
+                    <div class="price-card primary-price">
+                        <h3>國際期貨(TWD) 換算參考</h3>
+                        <div class="price-value" id="gold-global-price">載入中...</div>
+                        <div class="price-label">新台幣 / 公克</div>
+                    </div>
+                    
+                    <div class="price-card primary-price">
+                        <h3>台銀賣出價</h3>
+                        <div class="price-value" id="gold-sell-price">載入中...</div>
+                        <div class="price-label">新台幣 / 公克</div>
+                    </div>
+                    
+                    <div class="price-card secondary-price">
+                        <h3>台銀買入價</h3>
+                        <div class="price-value" id="gold-buy-price">載入中...</div>
+                        <div class="price-label">新台幣 / 公克</div>
+                    </div>
+                </section>
+
+                <!-- Strategy & Alerts Panel -->
+                <section class="panel strategy-panel">
+                    <div class="panel-header">
+                        <h2>策略建議與提醒</h2>
+                    </div>
+                    <div class="strategy-content">
+                        <div class="signal-box" id="trading-signal-box">
+                            <div class="signal-label">當前建議</div>
+                            <div class="signal-value" id="trading-signal">ANALYZING</div>
+                        </div>
+                        
+                        <div class="reasons-box">
+                            <h3>觸發條件</h3>
+                            <ul id="signal-reasons-list" class="reasons-list">
+                                <li>分析中...</li>
+                            </ul>
+                        </div>
+
+                        <div class="alerts-box">
+                            <h3>系統提醒</h3>
+                            <div class="alert-item info">
+                                <span class="alert-time">剛剛</span>
+                                <p>系統已更新最新國際市場報價與匯率。</p>
+                            </div>
+                            <div class="alert-item warning">
+                                <span class="alert-time">注意</span>
+                                <p>本系統已改為直接抓取「台灣銀行黃金存摺」官方歷史牌價，確保與您實際交易的價格完全一致。</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
 
             <!-- Chart Panel -->
             <section class="panel chart-panel">
@@ -68,38 +105,6 @@
                     <div class="loading-overlay" id="chart-loading">
                         <div class="spinner"></div>
                         <p>分析數據載入中...</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Strategy & Alerts Panel -->
-            <section class="panel strategy-panel">
-                <div class="panel-header">
-                    <h2>策略建議與提醒</h2>
-                </div>
-                <div class="strategy-content">
-                    <div class="signal-box" id="trading-signal-box">
-                        <div class="signal-label">當前建議</div>
-                        <div class="signal-value" id="trading-signal">ANALYZING</div>
-                    </div>
-                    
-                    <div class="reasons-box">
-                        <h3>觸發條件</h3>
-                        <ul id="signal-reasons-list" class="reasons-list">
-                            <li>分析中...</li>
-                        </ul>
-                    </div>
-
-                    <div class="alerts-box">
-                        <h3>系統提醒</h3>
-                        <div class="alert-item info">
-                            <span class="alert-time">剛剛</span>
-                            <p>系統已更新最新國際市場報價與匯率。</p>
-                        </div>
-                        <div class="alert-item warning">
-                            <span class="alert-time">注意</span>
-                            <p>本系統已改為直接抓取「台灣銀行黃金存摺」官方歷史牌價，確保與您實際交易的價格完全一致。</p>
-                        </div>
                     </div>
                 </div>
             </section>
