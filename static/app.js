@@ -156,6 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateDashboard(data) {
         // Prices
         if (goldGlobalPriceEl) goldGlobalPriceEl.textContent = `NT$${data.current_global_price.toFixed(0)}`;
+        const usdEl = document.getElementById('gold-global-price-usd');
+        if (usdEl && data.current_global_price_usd != null) {
+            usdEl.textContent = `USD $${data.current_global_price_usd.toFixed(2)} / troy oz`;
+        }
         goldSellPriceEl.textContent = data.current_sell_price ? `NT$${data.current_sell_price.toFixed(0)}` : '無';
         goldBuyPriceEl.textContent = data.current_buy_price ? `NT$${data.current_buy_price.toFixed(0)}` : '無';
 

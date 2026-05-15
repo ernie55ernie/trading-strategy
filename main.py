@@ -195,6 +195,7 @@ def get_market_data(period: str = "1y"):
             "current_buy_price": float(latest_tb['buy_price']),
             "current_sell_price": float(latest_tb['sell_price']),
             "current_global_price": float(latest['global_twd_price']),
+            "current_global_price_usd": float(latest['global_price']),
             "signal": signal,
             "reasons": signal_reasons,
             "history": records

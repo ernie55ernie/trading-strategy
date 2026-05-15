@@ -195,6 +195,13 @@ body {
     color: var(--accent-gold);
 }
 
+.price-usd-label {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+}
+
 .exchange-rate {
     margin-top: 12px;
     font-size: 0.75rem;
