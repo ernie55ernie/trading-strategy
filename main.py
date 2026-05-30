@@ -50,11 +50,11 @@ def get_market_data(period: str = "1y"):
         tb_df = tb_df.sort_values(by='date').reset_index(drop=True)
         tb_df = tb_df[['date', 'buy_price', 'sell_price']]
         
-        years_map = {"1y": 1, "3y": 3, "5y": 5, "10y": 10}
-        target_years = years_map.get(period, 1)
+        days_map = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "3y": 365 * 3, "5y": 365 * 5, "10y": 365 * 10}
+        target_days = days_map.get(period, 365)
         
         end_date = tb_df['date'].max() + timedelta(days=1)
-        start_date = end_date - timedelta(days=365 * target_years)
+        start_date = end_date - timedelta(days=target_days)
         
         # PAXG-USD: Paxos Gold token - 1 PAXG = 1 troy oz of LBMA-certified gold in London Brink's vaults
         # Tracks London Bullion Market (LBMA) spot price accurately; 365-day coverage
