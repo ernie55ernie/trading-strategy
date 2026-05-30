@@ -92,6 +92,11 @@ def get_market_data(period: str = "1y"):
         df['bb_bbl'] = indicator_bb.bollinger_lband()
         df['bb_pband'] = indicator_bb.bollinger_pband()
         
+        indicator_bb_usd = ta.volatility.BollingerBands(close=df['global_price'], window=20, window_dev=2)
+        df['bb_usd_hband'] = indicator_bb_usd.bollinger_hband()
+        df['bb_usd_lband'] = indicator_bb_usd.bollinger_lband()
+        df['sma_20_usd'] = ta.trend.SMAIndicator(close=df['global_price'], window=20).sma_indicator()
+        
         df.dropna(subset=['sma_50', 'bb_bbh'], inplace=True)
         df = df.reset_index(drop=True)
         
@@ -185,6 +190,9 @@ def get_market_data(period: str = "1y"):
                 "bb_upper": float(row['bb_bbh']) if not math.isnan(row['bb_bbh']) else None,
                 "bb_lower": float(row['bb_bbl']) if not math.isnan(row['bb_bbl']) else None,
                 "bb_pband": float(row['bb_pband']) if not math.isnan(row['bb_pband']) else None,
+                "bb_usd_upper": float(row['bb_usd_hband']) if not math.isnan(row['bb_usd_hband']) else None,
+                "bb_usd_middle": float(row['sma_20_usd']) if not math.isnan(row['sma_20_usd']) else None,
+                "bb_usd_lower": float(row['bb_usd_lband']) if not math.isnan(row['bb_usd_lband']) else None,
                 "signal": hist_signal
             })
             
@@ -196,6 +204,9 @@ def get_market_data(period: str = "1y"):
             "current_sell_price": float(latest_tb['sell_price']),
             "current_global_price": float(latest['global_twd_price']),
             "current_global_price_usd": float(latest['global_price']),
+            "current_bb_usd_upper": float(latest['bb_usd_hband']),
+            "current_bb_usd_middle": float(latest['sma_20_usd']),
+            "current_bb_usd_lower": float(latest['bb_usd_lband']),
             "signal": signal,
             "reasons": signal_reasons,
             "history": records

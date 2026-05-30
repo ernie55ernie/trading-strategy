@@ -160,6 +160,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (usdEl && data.current_global_price_usd != null) {
             usdEl.textContent = `USD $${data.current_global_price_usd.toFixed(2)} / troy oz`;
         }
+        
+        const bbUsdUpperEl = document.getElementById('bb-usd-upper');
+        const bbUsdMiddleEl = document.getElementById('bb-usd-middle');
+        const bbUsdLowerEl = document.getElementById('bb-usd-lower');
+        
+        if (bbUsdUpperEl && data.current_bb_usd_upper != null) bbUsdUpperEl.textContent = `$${data.current_bb_usd_upper.toFixed(2)}`;
+        if (bbUsdMiddleEl && data.current_bb_usd_middle != null) bbUsdMiddleEl.textContent = `$${data.current_bb_usd_middle.toFixed(2)}`;
+        if (bbUsdLowerEl && data.current_bb_usd_lower != null) bbUsdLowerEl.textContent = `$${data.current_bb_usd_lower.toFixed(2)}`;
         goldSellPriceEl.textContent = data.current_sell_price ? `NT$${data.current_sell_price.toFixed(0)}` : '無';
         goldBuyPriceEl.textContent = data.current_buy_price ? `NT$${data.current_buy_price.toFixed(0)}` : '無';
 
