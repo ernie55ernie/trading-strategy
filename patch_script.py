@@ -3,7 +3,8 @@ import re
 with open('main.py', 'r') as f:
     content = f.read()
 
-new_func = """@app.get("/api/market-data")
+new_func = """import time
+@app.get("/api/market-data")
 def get_market_data(period: str = "1y"):
     try:
         url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
@@ -28,8 +29,15 @@ def get_market_data(period: str = "1y"):
         end_date = tb_df['date'].max() + timedelta(days=1)
         start_date = end_date - timedelta(days=365 * target_years)
         
-        gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-        twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+        max_retries = 3
+        for attempt in range(max_retries):
+            gc = yf.download('GC=F', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            
+            if not gc.empty and not twd.empty:
+                break
+                
+            time.sleep(1)
         
         if gc.empty or twd.empty:
             return {"error": "Failed to fetch global market data."}

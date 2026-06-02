@@ -10,6 +10,7 @@ import numpy as np
 import requests
 import yfinance as yf
 from datetime import timedelta
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,8 +59,15 @@ def get_market_data(period: str = "1y"):
         
         # PAXG-USD: Paxos Gold token - 1 PAXG = 1 troy oz of LBMA-certified gold in London Brink's vaults
         # Tracks London Bullion Market (LBMA) spot price accurately; 365-day coverage
-        paxg = yf.download('PAXG-USD', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-        twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+        max_retries = 3
+        for attempt in range(max_retries):
+            paxg = yf.download('PAXG-USD', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            
+            if not paxg.empty and not twd.empty:
+                break
+                
+            time.sleep(1)
         
         if paxg.empty or twd.empty:
             return {"error": "Failed to fetch global market data."}
