@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleBuyPrice = document.getElementById('toggle-buy-price');
 
     let chart, globalSeries, tbSellSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
+    let pbandChart, pbandSeries;
     let chartData = null;
 
     function updateLegend(param) {
@@ -131,6 +132,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         chart.subscribeCrosshairMove(updateLegend);
+        
+        // Initialize %B Chart
+        const pbandProperties = { 
+            ...chartProperties, 
+            timeScale: { visible: false, borderColor: 'rgba(255, 255, 255, 0.1)' } 
+        };
+        pbandChart = LightweightCharts.createChart(document.getElementById('tvchart-pband'), pbandProperties);
+        pbandSeries = pbandChart.addLineSeries({
+            color: 'rgba(236, 72, 153, 1)',
+            lineWidth: 2,
+            title: '%B',
+            lastValueVisible: true,
+            priceLineVisible: false,
+        });
+        
+        pbandSeries.createPriceLine({
+            price: 1.0,
+            color: 'rgba(239, 68, 68, 0.5)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '1.0'
+        });
+        pbandSeries.createPriceLine({
+            price: 0.0,
+            color: 'rgba(16, 185, 129, 0.5)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '0.0'
+        });
+
+        // Sync Crosshairs
+        chart.subscribeCrosshairMove(param => {
+            if (param.time) pbandChart.setCrosshairPosition(param.point.x, param.point.y, pbandSeries);
+            else pbandChart.clearCrosshairPosition();
+        });
+        pbandChart.subscribeCrosshairMove(param => {
+            if (param.time) chart.setCrosshairPosition(param.point.x, param.point.y, globalSeries);
+            else chart.clearCrosshairPosition();
+        });
+        
+        // Sync Time Scale
+        chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+            if (range) pbandChart.timeScale().setVisibleLogicalRange(range);
+        });
+        pbandChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+            if (range) chart.timeScale().setVisibleLogicalRange(range);
+        });
+        
         // autoSize handles resizing automatically
     }
 
@@ -221,6 +272,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.bb_lower
         }));
 
+        const pbandData = data.history.filter(i => i.bb_pband !== null).map(item => ({
+            time: item.time,
+            value: item.bb_pband
+        }));
+
         globalSeries.setData(globalData);
         tbSellSeries.setData(sellPriceData);
         buyPriceSeries.setData(buyPriceData);
@@ -228,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         sma50Series.setData(sma50Data);
         bbUpperSeries.setData(bbUpperData);
         bbLowerSeries.setData(bbLowerData);
+        pbandSeries.setData(pbandData);
         
         // Add Markers for historical signals
         const markers = [];
@@ -244,6 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Fit content
         chart.timeScale().fitContent();
+        pbandChart.timeScale().fitContent();
         
         chartData = data;
         updateLegend(null);
