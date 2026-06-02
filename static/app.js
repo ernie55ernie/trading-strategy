@@ -208,16 +208,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateDashboard(data) {
         // Prices
-        if (goldGlobalPriceEl) goldGlobalPriceEl.textContent = `NT$${data.current_global_price.toFixed(0)}`;
-        const usdEl = document.getElementById('gold-global-price-usd');
-        if (usdEl && data.current_global_price_usd != null) {
-            usdEl.textContent = `USD $${data.current_global_price_usd.toFixed(2)} / troy oz`;
+        if (goldGlobalPriceEl && data.current_global_price_usd != null) {
+            goldGlobalPriceEl.textContent = `$${data.current_global_price_usd.toFixed(2)}`;
+        }
+        
+        const twdEl = document.getElementById('gold-global-price-twd');
+        if (twdEl && data.current_global_price != null) {
+            twdEl.textContent = `換算台幣: NT$${data.current_global_price.toFixed(0)} / 公克`;
         }
         
         const dxfPriceEl = document.getElementById('dxf-price');
         const dailyRangeEl = document.getElementById('daily-range');
         if (dxfPriceEl) dxfPriceEl.textContent = data.current_dxf != null ? data.current_dxf.toFixed(2) : '--';
-        if (dailyRangeEl) dailyRangeEl.textContent = data.current_daily_range != null ? `$${data.current_daily_range.toFixed(2)}` : '--';
+        if (dailyRangeEl) {
+            if (data.current_gold_low != null && data.current_gold_high != null) {
+                dailyRangeEl.textContent = `$${data.current_gold_low.toFixed(2)} - $${data.current_gold_high.toFixed(2)}`;
+            } else {
+                dailyRangeEl.textContent = '--';
+            }
+        }
         
         const bbUsdUpperEl = document.getElementById('bb-usd-upper');
         const bbUsdMiddleEl = document.getElementById('bb-usd-middle');
