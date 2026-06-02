@@ -30,13 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
         if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>倫敦現貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
-        if (currentItem.sell_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
-        if (currentItem.buy_price !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
-        if (currentItem.sma_20 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
-        if (currentItem.sma_50 !== null) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
-        if (currentItem.bb_upper !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
-        if (currentItem.bb_lower !== null) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
-        if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
+        if (currentItem.sell_price !== null && toggleTbSell && toggleTbSell.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
+        if (currentItem.buy_price !== null && toggleBuyPrice && toggleBuyPrice.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
+        if (currentItem.sma_20 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
+        if (currentItem.sma_50 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
+        if (currentItem.bb_upper !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
+        if (currentItem.bb_lower !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
+        if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
 
         chartLegend.innerHTML = html;
     }
@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: '台銀賣出價',
             lastValueVisible: false,
             priceLineVisible: false,
+            visible: false,
         });
 
         buyPriceSeries = chart.addLineSeries({
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: '台銀買入價',
             lastValueVisible: false,
             priceLineVisible: false,
+            visible: false,
         });
 
         sma20Series = chart.addLineSeries({
@@ -311,6 +313,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         toggleTbSell.addEventListener('change', (e) => {
             const visible = e.target.checked;
             if (tbSellSeries) tbSellSeries.applyOptions({ visible });
+            updateLegend(null);
         });
     }
 
@@ -318,6 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         toggleBuyPrice.addEventListener('change', (e) => {
             const visible = e.target.checked;
             if (buyPriceSeries) buyPriceSeries.applyOptions({ visible });
+            updateLegend(null);
         });
     }
 
@@ -325,12 +329,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const visible = e.target.checked;
         if (sma20Series) sma20Series.applyOptions({ visible });
         if (sma50Series) sma50Series.applyOptions({ visible });
+        updateLegend(null);
     });
 
     toggleBb.addEventListener('change', (e) => {
         const visible = e.target.checked;
         if (bbUpperSeries) bbUpperSeries.applyOptions({ visible });
         if (bbLowerSeries) bbLowerSeries.applyOptions({ visible });
+        updateLegend(null);
     });
 
     const periodButtons = document.querySelectorAll('.control-btn');
