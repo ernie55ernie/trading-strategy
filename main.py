@@ -67,7 +67,7 @@ def get_market_data(period: str = "1y"):
         for attempt in range(max_retries):
             paxg = yf.download('PAXG-USD', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             twd = yf.download('TWD=X', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-            dxf = yf.download('DX=F', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            dxf = yf.download('DX-Y.NYB', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             
             if not paxg.empty and not twd.empty:
                 break
@@ -213,7 +213,7 @@ def get_market_data(period: str = "1y"):
             
         current_dxf = None
         if 'dxf' in locals() and not dxf.empty:
-            current_dxf = float(dxf['Close']['DX=F'].dropna().iloc[-1])
+            current_dxf = float(dxf['Close']['DX-Y.NYB'].dropna().iloc[-1])
             
         current_daily_range = None
         if not paxg.empty:
