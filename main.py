@@ -54,15 +54,19 @@ def get_market_data(period: str = "1y"):
         days_map = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "3y": 365 * 3, "5y": 365 * 5, "10y": 365 * 10}
         target_days = days_map.get(period, 365)
         
+        # Always fetch at least 90 days to ensure enough data points for 50-day SMA
+        fetch_days = max(target_days, 90)
+        
         end_date = tb_df['date'].max() + timedelta(days=1)
-        start_date = end_date - timedelta(days=target_days)
+        fetch_start_date = end_date - timedelta(days=fetch_days)
+        display_start_date = end_date - timedelta(days=target_days)
         
         # PAXG-USD: Paxos Gold token - 1 PAXG = 1 troy oz of LBMA-certified gold in London Brink's vaults
         # Tracks London Bullion Market (LBMA) spot price accurately; 365-day coverage
         max_retries = 3
         for attempt in range(max_retries):
-            paxg = yf.download('PAXG-USD', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
-            twd = yf.download('TWD=X', start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            paxg = yf.download('PAXG-USD', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            twd = yf.download('TWD=X', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             
             if not paxg.empty and not twd.empty:
                 break
@@ -106,7 +110,7 @@ def get_market_data(period: str = "1y"):
         df['sma_20_usd'] = ta.trend.SMAIndicator(close=df['global_price'], window=20).sma_indicator()
         
         df.dropna(subset=['sma_50', 'bb_bbh'], inplace=True)
-        df = df.reset_index(drop=True)
+        df = df[df['date'] >= display_start_date].reset_index(drop=True)
         
         if df.empty:
              return {"error": "Not enough data points after indicator calculation."}
