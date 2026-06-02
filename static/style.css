@@ -101,14 +101,13 @@ body {
     display: grid;
     grid-template-columns: 340px 1fr;
     gap: 24px;
-    height: calc(100vh - 120px);
+    min-height: calc(100vh - 120px);
 }
 
 .sidebar-panel {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    overflow-y: auto;
     padding-right: 8px;
 }
 
