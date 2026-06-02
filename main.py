@@ -67,6 +67,7 @@ def get_market_data(period: str = "1y"):
         for attempt in range(max_retries):
             paxg = yf.download('PAXG-USD', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             twd = yf.download('TWD=X', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            dxf = yf.download('DX=F', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             
             if not paxg.empty and not twd.empty:
                 break
@@ -210,6 +211,16 @@ def get_market_data(period: str = "1y"):
             
         latest_tb = tb_df.dropna().iloc[-1] if not tb_df.dropna().empty else {"buy_price": 0, "sell_price": 0}
             
+        current_dxf = None
+        if 'dxf' in locals() and not dxf.empty:
+            current_dxf = float(dxf['Close']['DX=F'].dropna().iloc[-1])
+            
+        current_daily_range = None
+        if not paxg.empty:
+            high = float(paxg['High']['PAXG-USD'].dropna().iloc[-1])
+            low = float(paxg['Low']['PAXG-USD'].dropna().iloc[-1])
+            current_daily_range = high - low
+            
         return {
             "status": "success",
             "current_buy_price": float(latest_tb['buy_price']),
@@ -219,6 +230,8 @@ def get_market_data(period: str = "1y"):
             "current_bb_usd_upper": float(latest['bb_usd_hband']),
             "current_bb_usd_middle": float(latest['sma_20_usd']),
             "current_bb_usd_lower": float(latest['bb_usd_lband']),
+            "current_dxf": current_dxf,
+            "current_daily_range": current_daily_range,
             "signal": signal,
             "reasons": signal_reasons,
             "history": records

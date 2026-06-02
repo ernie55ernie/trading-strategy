@@ -214,6 +214,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             usdEl.textContent = `USD $${data.current_global_price_usd.toFixed(2)} / troy oz`;
         }
         
+        const dxfPriceEl = document.getElementById('dxf-price');
+        const dailyRangeEl = document.getElementById('daily-range');
+        if (dxfPriceEl) dxfPriceEl.textContent = data.current_dxf != null ? data.current_dxf.toFixed(2) : '--';
+        if (dailyRangeEl) dailyRangeEl.textContent = data.current_daily_range != null ? `$${data.current_daily_range.toFixed(2)}` : '--';
+        
         const bbUsdUpperEl = document.getElementById('bb-usd-upper');
         const bbUsdMiddleEl = document.getElementById('bb-usd-middle');
         const bbUsdLowerEl = document.getElementById('bb-usd-lower');
