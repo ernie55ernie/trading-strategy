@@ -16,6 +16,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     let pbandChart, pbandSeries;
     let chartData = null;
 
+    let isLegendCollapsed = false;
+
+    // Attach event listener for the legend toggle button
+    if (chartLegend) {
+        chartLegend.addEventListener('click', (e) => {
+            if (e.target.closest('.legend-toggle-btn')) {
+                isLegendCollapsed = !isLegendCollapsed;
+                updateLegend(null); // Re-render with current data
+            }
+        });
+    }
+
     function updateLegend(param) {
         if (!chartData || chartData.history.length === 0) return;
 
@@ -28,16 +40,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!currentItem) return;
 
-        let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">${currentItem.time}</div>`;
-        if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>倫敦現貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
-        if (currentItem.sell_price !== null && toggleTbSell && toggleTbSell.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
-        if (currentItem.buy_price !== null && toggleBuyPrice && toggleBuyPrice.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
-        if (currentItem.sma_20 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
-        if (currentItem.sma_50 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
-        if (currentItem.bb_upper !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
-        if (currentItem.bb_lower !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
-        if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
-        if (currentItem.volume !== undefined && currentItem.volume > 0) html += `<div class="legend-item"><span class="legend-color" style="background:#60a5fa"></span> <span>成交量: ${currentItem.volume.toLocaleString()}</span></div>`;
+        let html = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="font-weight: 600; color: var(--text-muted); padding-right: 12px;">${currentItem.time}</div>
+                <button class="legend-toggle-btn" style="pointer-events: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 4px; user-select: none;">${isLegendCollapsed ? '+' : '−'}</button>
+            </div>
+        `;
+
+        if (!isLegendCollapsed) {
+            html += `<div class="legend-items-container" style="display: flex; flex-direction: column; gap: 8px;">`;
+            if (currentItem.global_price) html += `<div class="legend-item"><span class="legend-color" style="background:#fbbf24"></span> <span>倫敦現貨(TWD): ${currentItem.global_price.toFixed(0)}</span></div>`;
+            if (currentItem.sell_price !== null && toggleTbSell && toggleTbSell.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#f87171"></span> <span>台銀賣出價: ${currentItem.sell_price.toFixed(0)}</span></div>`;
+            if (currentItem.buy_price !== null && toggleBuyPrice && toggleBuyPrice.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span> <span>台銀買入價: ${currentItem.buy_price.toFixed(0)}</span></div>`;
+            if (currentItem.sma_20 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#a855f7"></span> <span>SMA 20: ${currentItem.sma_20.toFixed(2)}</span></div>`;
+            if (currentItem.sma_50 !== null && toggleSma && toggleSma.checked) html += `<div class="legend-item"><span class="legend-color" style="background:#10b981"></span> <span>SMA 50: ${currentItem.sma_50.toFixed(2)}</span></div>`;
+            if (currentItem.bb_upper !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
+            if (currentItem.bb_lower !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
+            if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
+            if (currentItem.volume !== undefined && currentItem.volume > 0) html += `<div class="legend-item"><span class="legend-color" style="background:#60a5fa"></span> <span>成交量: ${currentItem.volume.toLocaleString()}</span></div>`;
+            html += `</div>`;
+        }
 
         chartLegend.innerHTML = html;
     }
