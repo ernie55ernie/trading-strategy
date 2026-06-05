@@ -250,9 +250,13 @@ def get_market_data(period: str = "1y"):
             
         current_gold_high = None
         current_gold_low = None
-        if not paxg.empty:
-            current_gold_high = float(paxg['High']['PAXG-USD'].dropna().iloc[-1])
-            current_gold_low = float(paxg['Low']['PAXG-USD'].dropna().iloc[-1])
+        if global_gold is not None and not global_gold.empty:
+            try:
+                current_gold_high = float(global_gold['High'][gold_ticker].dropna().iloc[-1])
+                current_gold_low = float(global_gold['Low'][gold_ticker].dropna().iloc[-1])
+            except KeyError:
+                current_gold_high = float(global_gold['High'].dropna().iloc[-1])
+                current_gold_low = float(global_gold['Low'].dropna().iloc[-1])
             
         return {
             "status": "success",
