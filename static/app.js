@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleTbSell = document.getElementById('toggle-tb-sell');
     const toggleBuyPrice = document.getElementById('toggle-buy-price');
 
-    let chart, globalSeries, tbSellSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries;
+    let chart, globalSeries, tbSellSeries, buyPriceSeries, rsiSeries, sma20Series, sma50Series, bbUpperSeries, bbLowerSeries, volumeSeries;
     let pbandChart, pbandSeries;
     let chartData = null;
 
@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentItem.bb_upper !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Upper: ${currentItem.bb_upper.toFixed(2)}</span></div>`;
         if (currentItem.bb_lower !== null && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(167, 139, 250, 0.6)"></span> <span>BB Lower: ${currentItem.bb_lower.toFixed(2)}</span></div>`;
         if (currentItem.bb_pband !== null && currentItem.bb_pband !== undefined && toggleBb && toggleBb.checked) html += `<div class="legend-item"><span class="legend-color" style="background:rgba(236, 72, 153, 0.6)"></span> <span>%B: ${currentItem.bb_pband.toFixed(2)}</span></div>`;
+        if (currentItem.volume !== undefined && currentItem.volume > 0) html += `<div class="legend-item"><span class="legend-color" style="background:#60a5fa"></span> <span>成交量: ${currentItem.volume.toLocaleString()}</span></div>`;
 
         chartLegend.innerHTML = html;
     }
@@ -131,6 +132,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'BB Lower',
             lastValueVisible: false,
             priceLineVisible: false,
+        });
+
+        volumeSeries = chart.addHistogramSeries({
+            color: '#26a69a',
+            priceFormat: {
+                type: 'volume',
+            },
+            priceScaleId: '', // set as an overlay by setting a blank priceScaleId
+            scaleMargins: {
+                top: 0.8, // highest point of the series will be at 80% from top (bottom 20%)
+                bottom: 0,
+            },
         });
 
         chart.subscribeCrosshairMove(updateLegend);
@@ -293,6 +306,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             value: item.bb_pband
         }));
 
+        const volumeData = data.history.map((item, index) => {
+            let color = 'rgba(38, 166, 154, 0.5)'; // default green
+            if (index > 0 && data.history[index].global_price < data.history[index-1].global_price) {
+                color = 'rgba(239, 83, 80, 0.5)'; // red if price went down
+            }
+            return {
+                time: item.time,
+                value: item.volume !== undefined ? item.volume : 0,
+                color: color
+            };
+        });
+
         globalSeries.setData(globalData);
         tbSellSeries.setData(sellPriceData);
         buyPriceSeries.setData(buyPriceData);
@@ -301,6 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         bbUpperSeries.setData(bbUpperData);
         bbLowerSeries.setData(bbLowerData);
         pbandSeries.setData(pbandData);
+        volumeSeries.setData(volumeData);
         
         // Add Markers for historical signals
         const markers = [];

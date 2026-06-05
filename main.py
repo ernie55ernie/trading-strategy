@@ -61,26 +61,58 @@ def get_market_data(period: str = "1y"):
         fetch_start_date = end_date - timedelta(days=fetch_days)
         display_start_date = end_date - timedelta(days=target_days)
         
-        # PAXG-USD: Paxos Gold token - 1 PAXG = 1 troy oz of LBMA-certified gold in London Brink's vaults
-        # Tracks London Bullion Market (LBMA) spot price accurately; 365-day coverage
+        # Try fetching international gold price data with fallbacks
+        tickers_to_try = ['XAUUSD=X', 'GC=F', 'PAXG-USD']
+        global_gold = None
+        gold_ticker = None
+        
         max_retries = 3
         for attempt in range(max_retries):
-            paxg = yf.download('PAXG-USD', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+            for t in tickers_to_try:
+                temp_df = yf.download(t, start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+                if not temp_df.empty:
+                    global_gold = temp_df
+                    gold_ticker = t
+                    break
+            
             twd = yf.download('TWD=X', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             dxf = yf.download('DX-Y.NYB', start=fetch_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
             
-            if not paxg.empty and not twd.empty:
+            if global_gold is not None and not global_gold.empty and not twd.empty:
                 break
                 
             time.sleep(1)
         
-        if paxg.empty or twd.empty:
+        if global_gold is None or twd.empty:
             return {"error": "Failed to fetch global market data."}
             
+        try:
+            global_price_series = global_gold['Close'][gold_ticker]
+        except KeyError:
+            global_price_series = global_gold['Close']
+            
+        try:
+            if 'Volume' in global_gold.columns:
+                try:
+                    volume_series = global_gold['Volume'][gold_ticker]
+                except KeyError:
+                    volume_series = global_gold['Volume']
+            else:
+                volume_series = pd.Series(0, index=global_price_series.index)
+        except Exception:
+            volume_series = pd.Series(0, index=global_price_series.index)
+
+        try:
+            twd_series = twd['Close']['TWD=X']
+        except KeyError:
+            twd_series = twd['Close']
+            
         df = pd.DataFrame({
-            'global_price': paxg['Close']['PAXG-USD'],
-            'usd_twd': twd['Close']['TWD=X']
-        }).dropna()
+            'global_price': global_price_series,
+            'volume': volume_series,
+            'usd_twd': twd_series
+        }).dropna(subset=['global_price', 'usd_twd'])
+        df['volume'] = df['volume'].fillna(0)
         
         df['global_twd_price'] = (df['global_price'] / 31.1034768) * df['usd_twd']
         df = df.reset_index()
@@ -191,6 +223,7 @@ def get_market_data(period: str = "1y"):
             records.append({
                 "time": row['date'].strftime('%Y-%m-%d'),
                 "global_price": float(row['global_twd_price']),
+                "volume": float(row['volume']) if pd.notna(row['volume']) else 0.0,
                 "buy_price": float(row['buy_price']) if pd.notna(row['buy_price']) else None,
                 "sell_price": float(row['sell_price']) if pd.notna(row['sell_price']) else None,
                 "value": float(row['global_twd_price']), # for primary global series mapping
@@ -227,6 +260,8 @@ def get_market_data(period: str = "1y"):
             "current_sell_price": float(latest_tb['sell_price']),
             "current_global_price": float(latest['global_twd_price']),
             "current_global_price_usd": float(latest['global_price']),
+            "current_volume": float(latest['volume']) if pd.notna(latest['volume']) else 0.0,
+            "data_source": gold_ticker,
             "current_bb_usd_upper": float(latest['bb_usd_hband']),
             "current_bb_usd_middle": float(latest['sma_20_usd']),
             "current_bb_usd_lower": float(latest['bb_usd_lband']),
