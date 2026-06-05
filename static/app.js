@@ -83,7 +83,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
             },
             rightPriceScale: {
-                visible: false,
+                visible: true,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                scaleMargins: {
+                    top: 0.8,
+                    bottom: 0,
+                },
             },
             timeScale: {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -100,6 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: '倫敦現貨(TWD)',
             lastValueVisible: false,
             priceLineVisible: false,
+            priceScaleId: 'left',
         });
 
         tbSellSeries = chart.addLineSeries({
@@ -109,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             lastValueVisible: false,
             priceLineVisible: false,
             visible: false,
+            priceScaleId: 'left',
         });
 
         buyPriceSeries = chart.addLineSeries({
@@ -118,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             lastValueVisible: false,
             priceLineVisible: false,
             visible: false,
+            priceScaleId: 'left',
         });
 
         sma20Series = chart.addLineSeries({
@@ -127,6 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             lastValueVisible: false,
             priceLineVisible: false,
             visible: false,
+            priceScaleId: 'left',
         });
 
         sma50Series = chart.addLineSeries({
@@ -136,6 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             lastValueVisible: false,
             priceLineVisible: false,
             visible: false,
+            priceScaleId: 'left',
         });
 
         bbUpperSeries = chart.addLineSeries({
@@ -145,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'BB Upper',
             lastValueVisible: false,
             priceLineVisible: false,
+            priceScaleId: 'left',
         });
 
         bbLowerSeries = chart.addLineSeries({
@@ -154,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'BB Lower',
             lastValueVisible: false,
             priceLineVisible: false,
+            priceScaleId: 'left',
         });
 
         volumeSeries = chart.addHistogramSeries({
@@ -161,11 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             priceFormat: {
                 type: 'volume',
             },
-            priceScaleId: '', // set as an overlay by setting a blank priceScaleId
-            scaleMargins: {
-                top: 0.8, // highest point of the series will be at 80% from top (bottom 20%)
-                bottom: 0,
-            },
+            priceScaleId: 'right', // use the right scale which we configured to be at the bottom 20%
         });
 
         chart.subscribeCrosshairMove(updateLegend);
