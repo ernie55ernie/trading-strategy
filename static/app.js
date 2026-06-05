@@ -250,6 +250,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateDashboard(data) {
+        const dataSourceValueEl = document.getElementById('data-source-value');
+        if (dataSourceValueEl && data.data_source) {
+            let label = data.data_source;
+            if (label === 'XAUUSD=X') label += ' (現貨)';
+            else if (label === 'GC=F') label += ' (期貨)';
+            else if (label === 'PAXG-USD') label += ' (代幣)';
+            dataSourceValueEl.textContent = label;
+        }
+        
         // Prices
         if (goldGlobalPriceEl && data.current_global_price_usd != null) {
             goldGlobalPriceEl.textContent = `$${data.current_global_price_usd.toFixed(2)}`;
