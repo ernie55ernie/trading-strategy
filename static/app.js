@@ -181,7 +181,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize %B Chart
         const pbandProperties = { 
             ...chartProperties, 
-            timeScale: { visible: false, borderColor: 'rgba(255, 255, 255, 0.1)' } 
+            timeScale: { visible: false, borderColor: 'rgba(255, 255, 255, 0.1)' },
+            rightPriceScale: {
+                visible: true,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                scaleMargins: { top: 0.1, bottom: 0.1 }
+            },
+            leftPriceScale: {
+                visible: false
+            }
         };
         pbandChart = LightweightCharts.createChart(document.getElementById('tvchart-pband'), pbandProperties);
         pbandSeries = pbandChart.addLineSeries({
@@ -190,8 +198,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: '%B',
             lastValueVisible: true,
             priceLineVisible: false,
+            priceScaleId: 'right',
+            autoscaleInfoProvider: () => ({
+                priceRange: {
+                    minValue: 0.0,
+                    maxValue: 2.0,
+                },
+            }),
         });
         
+        pbandSeries.createPriceLine({
+            price: 1.5,
+            color: 'rgba(255, 255, 255, 0.2)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '1.5'
+        });
         pbandSeries.createPriceLine({
             price: 1.0,
             color: 'rgba(239, 68, 68, 0.5)',
@@ -199,6 +222,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             lineStyle: LightweightCharts.LineStyle.Dashed,
             axisLabelVisible: false,
             title: '1.0'
+        });
+        pbandSeries.createPriceLine({
+            price: 0.5,
+            color: 'rgba(255, 255, 255, 0.2)',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '0.5'
         });
         pbandSeries.createPriceLine({
             price: 0.0,
