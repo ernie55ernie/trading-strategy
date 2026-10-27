@@ -9,7 +9,8 @@ import math
 import numpy as np
 import requests
 import yfinance as yf
-from datetime import timedelta
+from datetime import datetime, timedelta
+from io import StringIO
 import time
 
 logging.basicConfig(level=logging.INFO)
@@ -35,29 +36,36 @@ def read_root():
 @app.get("/api/market-data")
 def get_market_data(period: str = "1y"):
     try:
-        url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        res = requests.get(url, headers=headers)
-        
-        dfs = pd.read_html(res.text)
-        if not dfs:
-            return {"error": "No tables found on Taiwan Bank website."}
+        tb_df = pd.DataFrame(columns=['date', 'buy_price', 'sell_price'])
+        try:
+            url = 'https://rate.bot.com.tw/gold/chart/year/TWD'
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 200:
+                dfs = pd.read_html(StringIO(res.text))
+                if dfs:
+                    raw_tb = dfs[0]
+                    if len(raw_tb.columns) >= 5:
+                        raw_tb.columns = ['date', 'currency', 'weight', 'buy_price', 'sell_price']
+                        raw_tb['date'] = pd.to_datetime(raw_tb['date']).dt.tz_localize(None)
+                        raw_tb = raw_tb.sort_values(by='date').reset_index(drop=True)
+                        tb_df = raw_tb[['date', 'buy_price', 'sell_price']]
+        except Exception as tb_err:
+            logger.warning(f"Could not fetch or parse Taiwan Bank gold data: {tb_err}")
             
-        tb_df = dfs[0]
-        tb_df.columns = ['date', 'currency', 'weight', 'buy_price', 'sell_price']
-        tb_df['date'] = pd.to_datetime(tb_df['date']).dt.tz_localize(None)
-        tb_df = tb_df.sort_values(by='date').reset_index(drop=True)
-        tb_df = tb_df[['date', 'buy_price', 'sell_price']]
-        
         days_map = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "3y": 365 * 3, "5y": 365 * 5, "10y": 365 * 10}
         target_days = days_map.get(period, 365)
         
         # Always fetch at least (target_days + 350) days to ensure enough data points for 200-day SMA (rGold)
         fetch_days = max(target_days + 350, 400)
         
-        end_date = tb_df['date'].max() + timedelta(days=1)
+        if not tb_df.empty and pd.notna(tb_df['date'].max()):
+            end_date = tb_df['date'].max() + timedelta(days=1)
+        else:
+            end_date = datetime.now() + timedelta(days=1)
+            
         fetch_start_date = end_date - timedelta(days=fetch_days)
         display_start_date = end_date - timedelta(days=target_days)
         
@@ -275,7 +283,14 @@ def get_market_data(period: str = "1y"):
                 "signal": hist_signal
             })
             
-        latest_tb = tb_df.dropna().iloc[-1] if not tb_df.dropna().empty else {"buy_price": 0, "sell_price": 0}
+        current_tb_buy = None
+        current_tb_sell = None
+        if not tb_df.empty:
+            valid_tb = tb_df.dropna(subset=['buy_price', 'sell_price'])
+            if not valid_tb.empty:
+                last_tb = valid_tb.iloc[-1]
+                current_tb_buy = float(last_tb['buy_price']) if pd.notna(last_tb['buy_price']) else None
+                current_tb_sell = float(last_tb['sell_price']) if pd.notna(last_tb['sell_price']) else None
             
         current_dxf = None
         if 'dxf' in locals() and not dxf.empty:
@@ -293,8 +308,8 @@ def get_market_data(period: str = "1y"):
             
         return {
             "status": "success",
-            "current_buy_price": float(latest_tb['buy_price']),
-            "current_sell_price": float(latest_tb['sell_price']),
+            "current_buy_price": current_tb_buy,
+            "current_sell_price": current_tb_sell,
             "current_global_price": float(latest['global_twd_price']),
             "current_global_price_usd": float(latest['global_price']),
             "current_volume": float(latest['volume']) if pd.notna(latest['volume']) else 0.0,
