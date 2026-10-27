@@ -54,8 +54,8 @@ def get_market_data(period: str = "1y"):
         days_map = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "3y": 365 * 3, "5y": 365 * 5, "10y": 365 * 10}
         target_days = days_map.get(period, 365)
         
-        # Always fetch at least 90 days to ensure enough data points for 50-day SMA
-        fetch_days = max(target_days, 90)
+        # Always fetch at least (target_days + 350) days to ensure enough data points for 200-day SMA (rGold)
+        fetch_days = max(target_days + 350, 400)
         
         end_date = tb_df['date'].max() + timedelta(days=1)
         fetch_start_date = end_date - timedelta(days=fetch_days)
@@ -131,6 +131,7 @@ def get_market_data(period: str = "1y"):
         df['macd_diff'] = macd.macd_diff()
         df['sma_20'] = ta.trend.SMAIndicator(close=df['close'], window=20).sma_indicator()
         df['sma_50'] = ta.trend.SMAIndicator(close=df['close'], window=50).sma_indicator()
+        df['sma_200'] = ta.trend.SMAIndicator(close=df['close'], window=200).sma_indicator()
         
         indicator_bb = ta.volatility.BollingerBands(close=df['close'], window=20, window_dev=2)
         df['bb_bbh'] = indicator_bb.bollinger_hband()
@@ -141,6 +142,14 @@ def get_market_data(period: str = "1y"):
         df['bb_usd_hband'] = indicator_bb_usd.bollinger_hband()
         df['bb_usd_lband'] = indicator_bb_usd.bollinger_lband()
         df['sma_20_usd'] = ta.trend.SMAIndicator(close=df['global_price'], window=20).sma_indicator()
+        df['sma_200_usd'] = ta.trend.SMAIndicator(close=df['global_price'], window=200).sma_indicator()
+        
+        # rGold = 現在的金價 ÷ 200天移動平均線 (Current Gold Price / 200 MA)
+        df['rgold'] = np.where(
+            (pd.notna(df['sma_200_usd'])) & (df['sma_200_usd'] > 0),
+            df['global_price'] / df['sma_200_usd'],
+            np.nan
+        )
         
         df.dropna(subset=['sma_50', 'bb_bbh'], inplace=True)
         df = df[df['date'] >= display_start_date].reset_index(drop=True)
@@ -151,6 +160,20 @@ def get_market_data(period: str = "1y"):
         latest = df.iloc[-1]
         signal = "HOLD"
         signal_reasons = []
+        
+        # rGold 相對黃金比率評估 (逃頂保命線 1.25 / 健康牛市區 ~1.15)
+        current_rgold = float(latest['rgold']) if pd.notna(latest['rgold']) else None
+        if current_rgold is not None:
+            if current_rgold >= 1.25:
+                signal_reasons.append(f"🚨 rGold 相對黃金比率高達 {current_rgold:.3f}（衝破 1.25 紅色警報區！機構逃頂極度狂熱信號，價格遠遠跑在價值前面，建議倒金字塔減倉或離場觀望）")
+            elif current_rgold >= 1.20:
+                signal_reasons.append(f"⚠️ rGold 相對黃金比率達 {current_rgold:.3f}（逼近 1.25 逃頂警戒線，市場偏熱，留意追高風險）")
+            elif current_rgold >= 1.10:
+                signal_reasons.append(f"🟢 rGold 相對黃金比率為 {current_rgold:.3f}（處於約 1.15 健康牛市區，金價超年線 10~20%，市場結構良好）")
+            elif current_rgold >= 1.00:
+                signal_reasons.append(f"ℹ️ rGold 相對黃金比率為 {current_rgold:.3f}（金價位於 200 日年線上方，維持長線偏多格局）")
+            else:
+                signal_reasons.append(f"💡 rGold 相對黃金比率為 {current_rgold:.3f}（金價跌破 200 日年線，處於長線修正/價值低估區）")
         
         if latest['rsi'] > 70:
             signal_reasons.append("RSI 處於超買區 (>70)")
@@ -177,10 +200,13 @@ def get_market_data(period: str = "1y"):
         elif latest['bb_pband'] <= 0.20:
              signal_reasons.append("Bollinger Bands %B ≤ 0.20 (進場參考)")
              
-        bullish_points = sum([1 for r in signal_reasons if "超賣" in r or "黃金" in r or "進場" in r])
-        bearish_points = sum([1 for r in signal_reasons if "超買" in r or "死亡" in r or "出場" in r])
+        bullish_points = sum([1 for r in signal_reasons if "超賣" in r or "黃金" in r or "進場" in r or "健康牛市" in r])
+        bearish_points = sum([1 for r in signal_reasons if "超買" in r or "死亡" in r or "出場" in r or "警報" in r or "逃頂" in r or "過熱" in r])
         
-        if bullish_points > bearish_points:
+        if current_rgold is not None and current_rgold >= 1.25:
+            # Overrides to urgent SELL / ESCAPE signal
+            signal = "SELL"
+        elif bullish_points > bearish_points:
             signal = "BUY"
         elif bearish_points > bullish_points:
             signal = "SELL"
@@ -217,6 +243,10 @@ def get_market_data(period: str = "1y"):
                 if row['bb_pband'] >= 0.80: bearish += 1
                 elif row['bb_pband'] <= 0.20: bullish += 1
                 
+            if pd.notna(row['rgold']):
+                if row['rgold'] >= 1.25: bearish += 2
+                elif 1.10 <= row['rgold'] <= 1.20: bullish += 1
+
             if bullish > bearish: hist_signal = "BUY"
             elif bearish > bullish: hist_signal = "SELL"
 
@@ -233,6 +263,9 @@ def get_market_data(period: str = "1y"):
                 "macd_hist": float(row['macd_diff']) if not math.isnan(row['macd_diff']) else None,
                 "sma_20": float(row['sma_20']) if not math.isnan(row['sma_20']) else None,
                 "sma_50": float(row['sma_50']) if not math.isnan(row['sma_50']) else None,
+                "sma_200": float(row['sma_200']) if pd.notna(row['sma_200']) else None,
+                "sma_200_usd": float(row['sma_200_usd']) if pd.notna(row['sma_200_usd']) else None,
+                "rgold": float(row['rgold']) if pd.notna(row['rgold']) else None,
                 "bb_upper": float(row['bb_bbh']) if not math.isnan(row['bb_bbh']) else None,
                 "bb_lower": float(row['bb_bbl']) if not math.isnan(row['bb_bbl']) else None,
                 "bb_pband": float(row['bb_pband']) if not math.isnan(row['bb_pband']) else None,
@@ -272,6 +305,9 @@ def get_market_data(period: str = "1y"):
             "current_dxf": current_dxf,
             "current_gold_high": current_gold_high,
             "current_gold_low": current_gold_low,
+            "current_sma_200": float(latest['sma_200']) if pd.notna(latest['sma_200']) else None,
+            "current_sma_200_usd": float(latest['sma_200_usd']) if pd.notna(latest['sma_200_usd']) else None,
+            "current_rgold": current_rgold,
             "signal": signal,
             "reasons": signal_reasons,
             "history": records

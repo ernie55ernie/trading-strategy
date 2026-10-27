@@ -55,6 +55,60 @@
                             <div><span style="display:block; font-size:0.7rem; color:#a78bfa; margin-bottom: 2px;">BB 下軌</span><span id="bb-usd-lower" style="font-weight: 600;">--</span></div>
                         </div>
                     </div>
+
+                    <!-- Relative Gold Ratio (rGold) Thermometer & Exit Signal Card -->
+                    <div class="price-card rgold-card" id="rgold-card">
+                        <div class="rgold-header">
+                            <div class="rgold-title-wrap">
+                                <span class="rgold-icon">🌡️</span>
+                                <div>
+                                    <h3 class="rgold-heading">相對黃金比率 rGold</h3>
+                                    <div class="rgold-subheading">黃金體溫計 · 機構逃頂指標</div>
+                                </div>
+                            </div>
+                            <span class="rgold-badge" id="rgold-badge">計算中...</span>
+                        </div>
+
+                        <div class="rgold-metric-row">
+                            <div class="rgold-main-val-wrap">
+                                <div class="rgold-number" id="rgold-value">--</div>
+                                <div class="rgold-formula-hint">現價 ÷ 200天均線</div>
+                            </div>
+                            <div class="rgold-ma-wrap">
+                                <div class="rgold-ma-label">200 日年線 (MA200)</div>
+                                <div class="rgold-ma-val" id="rgold-ma200-usd">--</div>
+                                <div class="rgold-ma-twd" id="rgold-ma200-twd">--</div>
+                            </div>
+                        </div>
+
+                        <!-- Thermometer Bar Visual -->
+                        <div class="rgold-gauge-container">
+                            <div class="gauge-track">
+                                <div class="gauge-seg seg-under" title="< 1.00 年線下方 (長線價值)"></div>
+                                <div class="gauge-seg seg-norm" title="1.00 - 1.10 溫和多頭"></div>
+                                <div class="gauge-seg seg-bull" title="約 1.15 健康牛市區"></div>
+                                <div class="gauge-seg seg-warn" title="1.20 - 1.25 升溫警戒"></div>
+                                <div class="gauge-seg seg-alarm" title="> 1.25 🚨 紅色警報區"></div>
+                                <div class="gauge-pin" id="gauge-pin" style="left: 50%;">
+                                    <div class="pin-marker"></div>
+                                </div>
+                            </div>
+                            <div class="gauge-scale">
+                                <span class="scale-val">&lt; 1.00</span>
+                                <span class="scale-val scale-bull">1.15 健康牛市</span>
+                                <span class="scale-val scale-alarm">1.25 🚨 逃頂</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Guidance Box -->
+                        <div class="rgold-action-card" id="rgold-action-card">
+                            <div class="rgold-action-header">
+                                <span class="rgold-status-dot" id="rgold-status-dot"></span>
+                                <span class="rgold-action-title" id="rgold-action-title">指標狀態指引</span>
+                            </div>
+                            <p class="rgold-action-desc" id="rgold-action-desc">正在計算歷史 200 日移動平均線...</p>
+                        </div>
+                    </div>
                     
                     <div class="price-card primary-price">
                         <h3>台銀牌價 (新台幣 / 公克)</h3>
@@ -91,6 +145,10 @@
 
                         <div class="alerts-box">
                             <h3>系統提醒</h3>
+                            <div class="alert-item alert-rgold" id="alert-rgold-item" style="display: none;">
+                                <span class="alert-time" id="alert-rgold-badge">rGold 警報</span>
+                                <p id="alert-rgold-message"></p>
+                            </div>
                             <div class="alert-item info">
                                 <span class="alert-time">剛剛</span>
                                 <p>系統已更新最新國際市場報價與匯率。</p>
@@ -112,7 +170,8 @@
                         <div class="indicator-controls">
                             <label class="toggle-label"><input type="checkbox" id="toggle-tb-sell"> <span>台銀賣出價</span></label>
                             <label class="toggle-label"><input type="checkbox" id="toggle-buy-price"> <span>台銀買入價</span></label>
-                            <label class="toggle-label"><input type="checkbox" id="toggle-sma"> <span>SMA</span></label>
+                            <label class="toggle-label"><input type="checkbox" id="toggle-sma"> <span>SMA 20/50</span></label>
+                            <label class="toggle-label"><input type="checkbox" id="toggle-sma200"> <span>SMA 200 (年線)</span></label>
                             <label class="toggle-label"><input type="checkbox" id="toggle-bb" checked> <span>布林帶</span></label>
                         </div>
                         <div class="chart-controls">
@@ -133,8 +192,38 @@
                         <p>分析數據載入中...</p>
                     </div>
                 </div>
-                <div id="tvchart-pband" class="chart-container" style="min-height: 180px; flex: 0 0 180px; margin-top: 12px; border-top: 1px solid var(--border-subtle); background: transparent;">
-                    <div style="position: absolute; left: 16px; top: 16px; z-index: 10; font-size: 0.85rem; font-weight: 600; color: rgba(236, 72, 153, 0.9); background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05); pointer-events: none;">BB %B (20, 2)</div>
+
+                <!-- Subcharts Section -->
+                <div class="subcharts-wrapper">
+                    <div class="subchart-header-tabs">
+                        <span class="subchart-section-title">副圖技術分析</span>
+                        <div class="subchart-tab-btns">
+                            <button class="subtab-btn active" data-view="both">顯示全部</button>
+                            <button class="subtab-btn" data-view="rgold">rGold 體溫計</button>
+                            <button class="subtab-btn" data-view="pband">布林帶 %B</button>
+                        </div>
+                    </div>
+
+                    <!-- rGold Ratio Chart Panel -->
+                    <div id="subchart-rgold-panel" class="subchart-panel-item">
+                        <div class="subchart-badge rgold-badge-label">
+                            <span class="indicator-name">rGold 相對黃金比率 (現價 / 200MA)</span>
+                            <span class="level-tag level-alarm">🚨 1.25 逃頂保命線</span>
+                            <span class="level-tag level-bull">🟢 1.15 健康牛市</span>
+                            <span class="level-tag level-ma">1.00 年線基準</span>
+                        </div>
+                        <div id="tvchart-rgold" class="chart-container" style="min-height: 180px; flex: 0 0 180px; background: transparent;"></div>
+                    </div>
+
+                    <!-- Bollinger %B Chart Panel -->
+                    <div id="subchart-pband-panel" class="subchart-panel-item" style="margin-top: 12px; border-top: 1px solid var(--border-subtle);">
+                        <div class="subchart-badge pband-badge-label">
+                            <span class="indicator-name">BB %B (20, 2)</span>
+                            <span class="level-tag level-alarm">1.0 上軌 (超買)</span>
+                            <span class="level-tag level-bull">0.0 下軌 (超賣)</span>
+                        </div>
+                        <div id="tvchart-pband" class="chart-container" style="min-height: 180px; flex: 0 0 180px; background: transparent;"></div>
+                    </div>
                 </div>
             </section>
         </main>
